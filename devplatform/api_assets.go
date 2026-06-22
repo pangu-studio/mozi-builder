@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"memflow/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi"
 )
 
 // APISurface describes the product surface served by an HTTP API.

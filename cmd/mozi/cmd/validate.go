@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"memflow/mozi-builder/mozi"
-	"memflow/mozi-builder/mozi/db"
-	"memflow/mozi-builder/mozi/parser"
+	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi/db"
+	"github.com/pangu-sutido/mozi-builder/mozi/parser"
 
 	"github.com/spf13/cobra"
 )

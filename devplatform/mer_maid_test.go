@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"memflow/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi"
 )
 
 func TestMermaidEntityFormatsRequiredFieldsAsComment(t *testing.T) {

@@ -1,4 +1,4 @@
-module memflow/mozi-builder
+module github.com/pangu-sutido/mozi-builder
 
 go 1.26.4
 

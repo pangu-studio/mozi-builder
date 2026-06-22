@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"memflow/mozi-builder/mozi/db"
+	"github.com/pangu-sutido/mozi-builder/mozi/db"
 
 	"github.com/spf13/cobra"
 )

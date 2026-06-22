@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"memflow/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi"
 )
 
 // GenerateMermaidER generates a Mermaid erDiagram DSL string from a project IR.

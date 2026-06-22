@@ -11,13 +11,13 @@ import (
 	"sort"
 	"strings"
 
-	"memflow/mozi-builder/mozi"
-	moziapply "memflow/mozi-builder/mozi/apply"
-	"memflow/mozi-builder/mozi/db"
-	"memflow/mozi-builder/mozi/differ"
-	"memflow/mozi-builder/mozi/generator"
-	"memflow/mozi-builder/mozi/manifest"
-	"memflow/mozi-builder/mozi/parser"
+	"github.com/pangu-sutido/mozi-builder/mozi"
+	moziapply "github.com/pangu-sutido/mozi-builder/mozi/apply"
+	"github.com/pangu-sutido/mozi-builder/mozi/db"
+	"github.com/pangu-sutido/mozi-builder/mozi/differ"
+	"github.com/pangu-sutido/mozi-builder/mozi/generator"
+	"github.com/pangu-sutido/mozi-builder/mozi/manifest"
+	"github.com/pangu-sutido/mozi-builder/mozi/parser"
 
 	"gopkg.in/yaml.v3"
 )

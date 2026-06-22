@@ -3,7 +3,7 @@ package devplatform
 import (
 	"testing"
 
-	"memflow/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi"
 )
 
 func TestFilterProjectByModuleKeepsOnlyModuleModelsAndInternalRelations(t *testing.T) {

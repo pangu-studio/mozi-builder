@@ -11,7 +11,7 @@
 package main
 
 import (
-	"memflow/mozi-builder/cmd/mozi/cmd"
+	"github.com/pangu-sutido/mozi-builder/cmd/mozi/cmd"
 )
 
 func main() {

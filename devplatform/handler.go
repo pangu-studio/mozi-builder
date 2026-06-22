@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"memflow/mozi-builder/mozi"
+	"github.com/pangu-sutido/mozi-builder/mozi"
 
 	"github.com/gin-gonic/gin"
 )
