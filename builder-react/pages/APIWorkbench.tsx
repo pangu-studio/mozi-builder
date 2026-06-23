@@ -6,6 +6,7 @@ import {
   Empty,
   Form,
   Input,
+  Modal,
   Radio,
   Select,
   Space,
@@ -14,11 +15,12 @@ import {
   Tabs,
   Tag,
   Typography,
+  Tooltip,
   message,
   Card,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { ApiOutlined, ReloadOutlined, SendOutlined } from '@ant-design/icons'
+import { ApiOutlined, EditOutlined, ReloadOutlined, SendOutlined } from '@ant-design/icons'
 import {
   getMoziBuilderApiClient,
   listModels,
@@ -66,6 +68,8 @@ const APIWorkbench: React.FC = () => {
   const [moduleLoading, setModuleLoading] = useState(false)
   const [authMode, setAuthMode] = useState<'current' | 'custom'>('current')
   const [customToken, setCustomToken] = useState('')
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [assigningEndpoint, setAssigningEndpoint] = useState<APIEndpointAsset | null>(null)
 
   const load = async () => {
     setLoading(true)
@@ -94,6 +98,11 @@ const APIWorkbench: React.FC = () => {
     } finally {
       setModuleLoading(false)
     }
+  }
+
+  const openAssignModule = (endpoint: APIEndpointAsset) => {
+    setAssigningEndpoint(endpoint)
+    setAssignOpen(true)
   }
 
   useEffect(() => {
@@ -173,6 +182,24 @@ const APIWorkbench: React.FC = () => {
       width: 120,
       render: (_: string, record) =>
         record.module ? <Tag>{record.module_label || record.module}</Tag> : <Text type="secondary">未关联</Text>,
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 80,
+      render: (_: unknown, record) => (
+        <Tooltip title={record.module ? '修改模块' : '分配模块'}>
+          <Button
+            type="link"
+            size="small"
+            icon={<EditOutlined />}
+            onClick={(e) => {
+              e.stopPropagation()
+              openAssignModule(record)
+            }}
+          />
+        </Tooltip>
+      ),
     },
   ]
 
@@ -314,13 +341,7 @@ const APIWorkbench: React.FC = () => {
                         key: 'detail',
                         label: '契约',
                         children: (
-                          <EndpointDetail
-                            endpoint={selectedEndpoint}
-                            modules={moduleOptions}
-                            loadingModules={moduleLoading}
-                            onOpenModules={() => loadModuleOptions(assetIndex.modules)}
-                            onSaved={load}
-                          />
+                          <EndpointDetail endpoint={selectedEndpoint} />
                         ),
                       },
                       {
@@ -420,6 +441,16 @@ const APIWorkbench: React.FC = () => {
           </div>
         </>
       )}
+
+      <ModuleAssignModal
+        open={assignOpen}
+        endpoint={assigningEndpoint}
+        modules={moduleOptions}
+        loadingModules={moduleLoading}
+        onOpenModules={() => loadModuleOptions(assetIndex?.modules || [])}
+        onCancel={() => setAssignOpen(false)}
+        onSaved={load}
+      />
     </div>
   )
 }
@@ -433,34 +464,8 @@ const Metric: React.FC<{ title: string; value: number }> = ({ title, value }) =>
 
 const EndpointDetail: React.FC<{
   endpoint: APIEndpointAsset
-  modules: APIModuleSummary[]
-  loadingModules: boolean
-  onOpenModules: () => void
-  onSaved: () => Promise<void>
-}> = ({ endpoint, modules, loadingModules, onOpenModules, onSaved }) => {
+}> = ({ endpoint }) => {
   const surfaceMeta = SURFACE_META[endpoint.surface] || { label: endpoint.surface, color: 'default' }
-  const [moduleID, setModuleID] = useState<string | undefined>(endpoint.module || undefined)
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    setModuleID(endpoint.module || undefined)
-  }, [endpoint.id, endpoint.module])
-
-  const handleSaveModule = async () => {
-    setSaving(true)
-    try {
-      await saveAPIEndpointOverride({
-        endpoint_id: endpoint.id,
-        module_id: moduleID || '',
-      })
-      message.success('已保存接口模块关联')
-      await onSaved()
-    } catch (err: any) {
-      message.error(err?.response?.data?.error || err?.message || '保存模块关联失败')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   return (
     <div>
@@ -491,32 +496,6 @@ const EndpointDetail: React.FC<{
           { label: 'operationId', children: endpoint.operation_id || '-' },
         ]}
       />
-      <div style={{ marginTop: 12, padding: 12, border: '1px solid #f0f0f0', borderRadius: 8 }}>
-        <Text strong>后台模块关联</Text>
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-          <Select
-            allowClear
-            placeholder="选择模块"
-            style={{ flex: 1 }}
-            value={moduleID}
-            onChange={setModuleID}
-            loading={loadingModules}
-            onDropdownVisibleChange={(open) => {
-              if (open) onOpenModules()
-            }}
-            options={modules.map((item) => ({
-              value: item.name,
-              label: `${item.label || item.name} (${item.name})`,
-            }))}
-          />
-          <Button type="primary" loading={saving} onClick={handleSaveModule}>
-            保存
-          </Button>
-        </div>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          只保存平台展示关联，不修改 OpenAPI 路径、方法或请求响应结构。
-        </Text>
-      </div>
       <Paragraph style={{ marginTop: 12 }}>
         <Text strong>说明：</Text>
         <br />
@@ -531,6 +510,108 @@ const EndpointDetail: React.FC<{
         <Text code>{endpoint.source_hash.slice(0, 12)}</Text>
       </div>
     </div>
+  )
+}
+
+const ModuleAssignModal: React.FC<{
+  open: boolean
+  endpoint: APIEndpointAsset | null
+  modules: APIModuleSummary[]
+  loadingModules: boolean
+  onOpenModules: () => void
+  onCancel: () => void
+  onSaved: () => Promise<void>
+}> = ({ open, endpoint, modules, loadingModules, onOpenModules, onCancel, onSaved }) => {
+  const [moduleID, setModuleID] = useState<string | undefined>(undefined)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (open && endpoint) {
+      setModuleID(endpoint.module || undefined)
+    }
+  }, [open, endpoint?.id, endpoint?.module])
+
+  const handleSave = async () => {
+    if (!endpoint) return
+    setSaving(true)
+    try {
+      await saveAPIEndpointOverride({
+        endpoint_id: endpoint.id,
+        module_id: moduleID || '',
+      })
+      message.success('已保存接口模块关联')
+      await onSaved()
+      onCancel()
+    } catch (err: any) {
+      message.error(err?.response?.data?.error || err?.message || '保存模块关联失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Modal
+      title={endpoint?.module ? '修改模块关联' : '分配模块'}
+      open={open}
+      onOk={handleSave}
+      onCancel={onCancel}
+      confirmLoading={saving}
+      okText="保存"
+      cancelText="取消"
+    >
+      {endpoint && (
+        <div>
+          <div style={{ marginBottom: 12 }}>
+            <Tag color={METHOD_COLORS[endpoint.method] || 'default'}>{endpoint.method}</Tag>
+            <Text code style={{ marginLeft: 4 }}>
+              {endpoint.path}
+            </Text>
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {endpoint.display_name || endpoint.summary || endpoint.operation_id || '未命名接口'}
+              </Text>
+            </div>
+          </div>
+          {endpoint.module ? (
+            <div style={{ marginBottom: 12 }}>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                当前模块：
+              </Text>
+              <Tag color={endpoint.module_overridden ? 'blue' : undefined}>
+                {endpoint.module_label || endpoint.module}
+              </Tag>
+              {endpoint.module_overridden ? (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  后台关联
+                </Text>
+              ) : null}
+            </div>
+          ) : null}
+          <Form layout="vertical">
+            <Form.Item label="所属模块" style={{ marginBottom: 8 }}>
+              <Select
+                allowClear
+                placeholder="选择模块（留空表示不关联）"
+                style={{ width: '100%' }}
+                value={moduleID}
+                onChange={setModuleID}
+                loading={loadingModules}
+                onDropdownVisibleChange={(visible) => {
+                  if (visible) onOpenModules()
+                }}
+                options={modules.map((item) => ({
+                  value: item.name,
+                  label: `${item.label || item.name} (${item.name})`,
+                }))}
+              />
+            </Form.Item>
+          </Form>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            只保存平台展示关联，不修改 OpenAPI 路径、方法或请求响应结构。
+          </Text>
+        </div>
+      )}
+    </Modal>
   )
 }
 
