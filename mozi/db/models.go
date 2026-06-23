@@ -206,7 +206,7 @@ func (s *Store) GetLatestVersion(modelID string) (string, error) {
 // ListVersions returns version history for a model.
 func (s *Store) ListVersions(modelID string) ([]VersionInfo, error) {
 	rows, err := s.DB.Query(`
-		SELECT version, change_summary, created_by, created_at
+		SELECT version, change_summary, created_by, created_at, diff_summary
 		FROM model_versions WHERE model_id = $1 ORDER BY created_at DESC
 	`, modelID)
 	if err != nil {
@@ -218,10 +218,12 @@ func (s *Store) ListVersions(modelID string) ([]VersionInfo, error) {
 	for rows.Next() {
 		var v VersionInfo
 		var createdAt time.Time
-		if err := rows.Scan(&v.Version, &v.ChangeSummary, &v.CreatedBy, &createdAt); err != nil {
+		var diffSummary sql.NullString
+		if err := rows.Scan(&v.Version, &v.ChangeSummary, &v.CreatedBy, &createdAt, &diffSummary); err != nil {
 			return nil, err
 		}
 		v.CreatedAt = createdAt.Format(time.RFC3339)
+		v.DiffSummary = diffSummary.String
 		versions = append(versions, v)
 	}
 	return versions, rows.Err()
@@ -233,6 +235,45 @@ type VersionInfo struct {
 	ChangeSummary string `json:"change_summary"`
 	CreatedBy     string `json:"created_by"`
 	CreatedAt     string `json:"created_at"`
+	// DiffSummary holds the cached JSON diff snapshot (differ.DiffSummary) for
+	// this version vs its predecessor. Not serialized directly — the service
+	// layer parses and attaches it to the API response. Empty when not yet
+	// computed (lazily backfilled on first history read).
+	DiffSummary string `json:"-"`
+}
+
+// PreviousVersion returns the immediate predecessor version of `version`
+// (the next older one by insertion order), or "" if `version` is the first.
+func (s *Store) PreviousVersion(modelID string, version string) (string, error) {
+	var v sql.NullString
+	err := s.DB.QueryRow(`
+		SELECT version FROM model_versions
+		WHERE model_id = $1
+		  AND id < (SELECT id FROM model_versions WHERE model_id = $1 AND version = $2)
+		ORDER BY id DESC LIMIT 1
+	`, modelID, version).Scan(&v)
+	if err == sql.ErrNoRows {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return v.String, nil
+}
+
+// UpdateVersionDiffSummary persists the JSON-encoded differ.DiffSummary for a
+// version. Passing diffJSON == "" stores NULL, marking the summary as not computed.
+func (s *Store) UpdateVersionDiffSummary(modelID string, version string, diffJSON string) error {
+	var arg any
+	if diffJSON == "" {
+		arg = nil
+	} else {
+		arg = diffJSON
+	}
+	_, err := s.DB.Exec(`
+		UPDATE model_versions SET diff_summary = $1 WHERE model_id = $2 AND version = $3
+	`, arg, modelID, version)
+	return err
 }
 
 // ============================================================================

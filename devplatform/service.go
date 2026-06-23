@@ -6,6 +6,7 @@ package devplatform
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"sort"
@@ -70,11 +71,13 @@ type ModelSummary struct {
 
 // ModelVersionInfo describes one saved model version for history views.
 type ModelVersionInfo struct {
-	Version       string `json:"version"`
-	ChangeSummary string `json:"change_summary"`
-	CreatedBy     string `json:"created_by"`
-	CreatedAt     string `json:"created_at"`
-	Current       bool   `json:"current"`
+	Version       string              `json:"version"`
+	ChangeSummary string              `json:"change_summary"`
+	CreatedBy     string              `json:"created_by"`
+	CreatedAt     string              `json:"created_at"`
+	Current       bool                `json:"current"`
+	FromVersion   string              `json:"from_version,omitempty"` // predecessor version (empty for the first)
+	Diff          *differ.DiffSummary `json:"diff,omitempty"`         // structured diff vs predecessor
 }
 
 // ModuleSummary is a lightweight module representation.
@@ -202,7 +205,11 @@ func (s *Service) GetModel(ctx context.Context, modelName string) (*mozi.ModelIR
 	return s.Store.LoadModel(modelName)
 }
 
-// ListModelHistory returns saved versions for a model, newest first.
+// ListModelHistory returns saved versions for a model, newest first, each
+// annotated with its structured diff against the predecessor. The summary is
+// read from the cached diff_summary column (precomputed at save time); versions
+// without a cached summary (CLI saves, pre-feature rows) are backfilled lazily
+// so the history view is always populated.
 func (s *Service) ListModelHistory(ctx context.Context, modelName string) ([]ModelVersionInfo, error) {
 	_, _, _, _, _, currentVersion, err := s.Store.GetModel(modelName)
 	if err != nil {
@@ -214,15 +221,52 @@ func (s *Service) ListModelHistory(ctx context.Context, modelName string) ([]Mod
 	}
 	result := make([]ModelVersionInfo, 0, len(versions))
 	for _, v := range versions {
-		result = append(result, ModelVersionInfo{
+		info := ModelVersionInfo{
 			Version:       v.Version,
 			ChangeSummary: v.ChangeSummary,
 			CreatedBy:     v.CreatedBy,
 			CreatedAt:     v.CreatedAt,
 			Current:       v.Version == currentVersion,
-		})
+		}
+		if summary := s.loadOrComputeVersionDiff(modelName, v.Version, v.DiffSummary); summary != nil {
+			info.FromVersion = summary.FromVersion
+			info.Diff = summary
+		}
+		result = append(result, info)
 	}
 	return result, nil
+}
+
+// loadOrComputeVersionDiff returns a version's DiffSummary, parsing the cached
+// JSON snapshot when present and falling back to compute+persist (lazy backfill)
+// when it is missing or unparseable. Returns nil only if both paths fail, so a
+// transient diff error never breaks the whole history listing.
+func (s *Service) loadOrComputeVersionDiff(modelID, version, cachedJSON string) *differ.DiffSummary {
+	if strings.TrimSpace(cachedJSON) != "" {
+		var summary differ.DiffSummary
+		if err := json.Unmarshal([]byte(cachedJSON), &summary); err == nil {
+			return &summary
+		}
+	}
+	summary, err := s.persistVersionDiff(modelID, version)
+	if err != nil {
+		return nil
+	}
+	return summary
+}
+
+// saveModelWithDiff persists a model and precomputes its new version's diff
+// snapshot (path B). The diff is best-effort: a failure to compute/persist the
+// summary never blocks the save — the summary is lazily backfilled on the next
+// history read (path A). This keeps the API/UI save path O(1) on history reads.
+func (s *Service) saveModelWithDiff(model *mozi.ModelIR, changeSummary, createdBy string) error {
+	if err := s.Store.SaveModel(model, changeSummary, createdBy); err != nil {
+		return err
+	}
+	if version, err := s.Store.GetLatestVersion(model.Name); err == nil && version != "" {
+		_, _ = s.persistVersionDiff(model.Name, version)
+	}
+	return nil
 }
 
 // CreateModel creates a new model from YAML content.
@@ -245,7 +289,7 @@ func (s *Service) CreateModel(ctx context.Context, yamlContent string) (*mozi.Mo
 		return nil, fmt.Errorf("parse model: %w", err)
 	}
 
-	if err := s.Store.SaveModel(model, "Created via dev platform", ""); err != nil {
+	if err := s.saveModelWithDiff(model, "Created via dev platform", ""); err != nil {
 		return nil, fmt.Errorf("save model: %w", err)
 	}
 
@@ -258,7 +302,7 @@ func (s *Service) CreateModelIR(ctx context.Context, model *mozi.ModelIR) (*mozi
 		return nil, fmt.Errorf("model payload is required")
 	}
 	parser.NormalizeModel(model, model.Module)
-	if err := s.Store.SaveModel(model, "Created via dev platform", ""); err != nil {
+	if err := s.saveModelWithDiff(model, "Created via dev platform", ""); err != nil {
 		return nil, fmt.Errorf("save model: %w", err)
 	}
 	return model, nil
@@ -277,7 +321,7 @@ func (s *Service) UpdateModel(ctx context.Context, modelName string, yamlContent
 		return nil, fmt.Errorf("parse model: %w", err)
 	}
 
-	if err := s.Store.SaveModel(model, "Updated via dev platform", ""); err != nil {
+	if err := s.saveModelWithDiff(model, "Updated via dev platform", ""); err != nil {
 		return nil, fmt.Errorf("save model: %w", err)
 	}
 
@@ -300,7 +344,7 @@ func (s *Service) UpdateModelIR(ctx context.Context, modelName string, model *mo
 		model.Name = existing.Name
 	}
 	parser.NormalizeModel(model, existing.Module)
-	if err := s.Store.SaveModel(model, "Updated via dev platform", ""); err != nil {
+	if err := s.saveModelWithDiff(model, "Updated via dev platform", ""); err != nil {
 		return nil, fmt.Errorf("save model: %w", err)
 	}
 	return model, nil
@@ -396,46 +440,78 @@ func (s *Service) ValidateModel(ctx context.Context, modelName string) (*Validat
 // Diff
 // ============================================================================
 
-// GetDiff returns a structured diff for a model.
+// GetDiff returns a structured diff for a model (current version vs its predecessor).
 func (s *Service) GetDiff(ctx context.Context, modelName string) (*differ.DiffResult, error) {
-	model, err := s.Store.LoadModel(modelName)
-	if err != nil {
-		return nil, fmt.Errorf("load model: %w", err)
-	}
-
 	_, _, _, _, _, currentVersion, err := s.Store.GetModel(modelName)
 	if err != nil {
 		return nil, fmt.Errorf("get version: %w", err)
 	}
+	return s.computeVersionDiff(modelName, currentVersion)
+}
 
-	// Compare with previous version — find the prior version from history
-	versions, err := s.Store.ListVersions(modelName)
+// computeVersionDiff is the single source of truth for the structured diff of a
+// version against its immediate predecessor. The first version diffs against an
+// empty model of the same identity. Used by GetDiff (current version), per-version
+// history rendering, and the save-time / lazy-backfill persistence path, so diff
+// behavior never diverges between surfaces.
+func (s *Service) computeVersionDiff(modelID, version string) (*differ.DiffResult, error) {
+	current, err := s.Store.LoadModelVersion(modelID, version, "")
 	if err != nil {
-		return nil, fmt.Errorf("list versions: %w", err)
+		return nil, fmt.Errorf("load version %s: %w", version, err)
 	}
-
-	var prevVersion string
-	for i, v := range versions {
-		if v.Version == currentVersion && i+1 < len(versions) {
-			prevVersion = versions[i+1].Version
-			break
+	// Snapshots may lack module/name; fill identity from the model record.
+	if current.Module == "" || current.Name == "" {
+		_, mod, label, _, _, _, _ := s.Store.GetModel(modelID)
+		if current.Module == "" {
+			current.Module = mod
+		}
+		if current.Name == "" {
+			current.Name = modelID
+		}
+		if current.Label == "" {
+			current.Label = label
 		}
 	}
 
-	if prevVersion == "" {
-		// No previous version — diff against empty model (new model)
-		prevModel := &mozi.ModelIR{
-			Module: model.Module,
-			Name:   model.Name,
-			Label:  model.Label,
+	prevVersion, err := s.Store.PreviousVersion(modelID, version)
+	if err != nil {
+		return nil, fmt.Errorf("previous version: %w", err)
+	}
+
+	var prev *mozi.ModelIR
+	if prevVersion != "" {
+		prev = s.loadModelVersionForDiff(modelID, prevVersion, current)
+	} else {
+		// First version — diff against an empty model of the same identity.
+		prev = &mozi.ModelIR{
+			Module: current.Module,
+			Name:   current.Name,
+			Label:  current.Label,
 			Admin:  mozi.AdminConfig{},
 		}
-		return differ.Compare(prevModel, model, prevVersion, currentVersion), nil
 	}
+	return differ.Compare(prev, current, prevVersion, version), nil
+}
 
-	prevModel := s.loadModelVersionForDiff(modelName, prevVersion, model)
-
-	return differ.Compare(prevModel, model, prevVersion, currentVersion), nil
+// persistVersionDiff computes a version's diff, caches its DiffSummary JSON in
+// the model_versions.diff_summary column, and returns the summary. Used both at
+// save time (precompute, path B) and as the lazy backfill (path A) when history
+// reads a version whose summary has not been computed yet (e.g. CLI saves or
+// rows from before this feature shipped).
+func (s *Service) persistVersionDiff(modelID, version string) (*differ.DiffSummary, error) {
+	diff, err := s.computeVersionDiff(modelID, version)
+	if err != nil {
+		return nil, err
+	}
+	summary := diff.Summary()
+	payload, err := json.Marshal(summary)
+	if err != nil {
+		return nil, fmt.Errorf("marshal diff summary: %w", err)
+	}
+	if err := s.Store.UpdateVersionDiffSummary(modelID, version, string(payload)); err != nil {
+		return nil, fmt.Errorf("persist diff summary: %w", err)
+	}
+	return summary, nil
 }
 
 // ============================================================================

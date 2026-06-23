@@ -35,6 +35,7 @@ import type { ColumnsType } from 'antd/es/table'
 import { useDevPlatformStore } from '../stores/dev-platform'
 import { getModel, getModelHistory } from '../api/dev-platform'
 import type { FieldIR, ModelIR, ModelSummary, ModelVersionInfo, ModuleSummary, RelationIR } from '../api/dev-platform'
+import { ChangeCountBadges, ChangeList } from '../diffShared'
 import { useMoziBuilder } from '..'
 import IconSelect from '../components/IconSelect'
 
@@ -743,6 +744,12 @@ const ModelHistoryModal: React.FC<ModelHistoryModalProps> = ({ open, loading, mo
       ),
     },
     {
+      title: '本次变更',
+      key: 'diff',
+      width: 150,
+      render: (_v, record) => <ChangeCountBadges summary={record.diff} />,
+    },
+    {
       title: '变更摘要',
       dataIndex: 'change_summary',
       key: 'change_summary',
@@ -770,7 +777,7 @@ const ModelHistoryModal: React.FC<ModelHistoryModalProps> = ({ open, loading, mo
       open={open}
       onCancel={onCancel}
       footer={null}
-      width={820}
+      width={960}
     >
       <Table
         columns={columns}
@@ -780,6 +787,10 @@ const ModelHistoryModal: React.FC<ModelHistoryModalProps> = ({ open, loading, mo
         size="small"
         pagination={versions.length > 8 ? { pageSize: 8 } : false}
         locale={{ emptyText: '暂无修改历史' }}
+        expandable={{
+          expandedRowRender: (record) => <ChangeList changes={record.diff?.changes} />,
+          rowExpandable: (record) => !!record.diff?.has_changes,
+        }}
       />
     </Modal>
   )

@@ -46,6 +46,38 @@ type AffectedFile struct {
 	ChangeCount int    `json:"change_count"`
 }
 
+// DiffSummary is a compact, serializable view of a DiffResult designed for
+// version-history display: aggregate counts by change type and category,
+// plus the full change list for on-demand drill-down. Persisted as the
+// model_versions.diff_summary JSONB snapshot and served per-version by the
+// history endpoint.
+type DiffSummary struct {
+	HasChanges  bool           `json:"has_changes"`
+	FromVersion string         `json:"from_version"`
+	ToVersion   string         `json:"to_version"`
+	Counts      map[string]int `json:"counts"`      // {"added":n,"removed":n,"modified":n}
+	ByCategory  map[string]int `json:"by_category"` // {"field":n,"relation":n,...}
+	Changes     []FieldChange  `json:"changes"`
+}
+
+// Summary derives the compact DiffSummary view from a DiffResult.
+func (d *DiffResult) Summary() *DiffSummary {
+	counts := map[string]int{"added": 0, "removed": 0, "modified": 0}
+	byCategory := map[string]int{}
+	for _, c := range d.Changes {
+		counts[string(c.Type)]++
+		byCategory[c.Category]++
+	}
+	return &DiffSummary{
+		HasChanges:  d.HasChanges,
+		FromVersion: d.FromVersion,
+		ToVersion:   d.ToVersion,
+		Counts:      counts,
+		ByCategory:  byCategory,
+		Changes:     d.Changes,
+	}
+}
+
 // Compare compares two ModelIRs and returns a structured diff.
 func Compare(from, to *mozi.ModelIR, fromVersion, toVersion string) *DiffResult {
 	ref := to.Module + "/" + to.Name

@@ -17,24 +17,9 @@ import { ArrowLeftOutlined, CodeOutlined, ReloadOutlined, CheckCircleFilled } fr
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDevPlatformStore } from '../stores/dev-platform'
 import { useMoziBuilder } from '..'
+import { ChangeItem } from '../diffShared'
 
 const { Text, Paragraph } = Typography
-
-const CHANGE_TYPE_CONFIG: Record<string, { color: string; label: string; icon: string }> = {
-  added: { color: 'green', label: '新增', icon: '+' },
-  removed: { color: 'red', label: '删除', icon: '-' },
-  modified: { color: 'orange', label: '修改', icon: '~' },
-}
-
-const CATEGORY_LABELS: Record<string, string> = {
-  field: '字段',
-  relation: '关联',
-  admin: '后台配置',
-  meta: '模型元数据',
-  semantics: '业务语义',
-  ui_intent: 'UI 意图',
-  api_intent: 'API 意图',
-}
 
 /** 将版本字符串（YYYYMMDDHHmmss）格式化为可读的本地时间 Tag */
 const formatVersionTag = (v: string, color?: string) => {
@@ -194,46 +179,13 @@ const DiffViewer: React.FC = () => {
             {/* 左侧：变更列表 */}
             <div style={{ flex: 1 }}>
               <Card size="small" title={`变更详情（${diff.changes.length}）`} style={{ marginBottom: 16 }}>
-                {diff.changes.map((change, i) => {
-                  const cfg = CHANGE_TYPE_CONFIG[change.type] || { color: 'default', label: change.type, icon: '' }
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        padding: '10px 12px',
-                        borderBottom: i < diff.changes.length - 1 ? '1px solid #f0f0f0' : 'none',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 10,
-                      }}
-                    >
-                      <Tag color={cfg.color}>{cfg.icon}</Tag>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ marginBottom: 4 }}>
-                          <Tag style={{ fontSize: 11 }}>{CATEGORY_LABELS[change.category] || change.category}</Tag>
-                          <Text strong>{change.name}</Text>
-                        </div>
-                        <Text type="secondary" style={{ fontSize: 13 }}>
-                          {change.detail}
-                        </Text>
-                        {change.old_value && (
-                          <div style={{ marginTop: 4 }}>
-                            <Text delete type="danger" style={{ fontSize: 12 }}>
-                              {change.old_value}
-                            </Text>
-                          </div>
-                        )}
-                        {change.new_value && (
-                          <div style={{ marginTop: 2 }}>
-                            <Text type="success" style={{ fontSize: 12 }}>
-                              → {change.new_value}
-                            </Text>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+                {diff.changes.map((change, i) => (
+                  <ChangeItem
+                    key={`${change.category}-${change.name}-${i}`}
+                    change={change}
+                    last={i === diff.changes.length - 1}
+                  />
+                ))}
               </Card>
             </div>
 

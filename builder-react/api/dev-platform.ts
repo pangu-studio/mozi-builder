@@ -66,6 +66,8 @@ export interface ModelVersionInfo {
   created_by: string
   created_at: string
   current: boolean
+  from_version?: string // predecessor version (empty for the first version)
+  diff?: DiffSummary // structured diff vs predecessor
 }
 
 export interface FieldIR {
@@ -296,6 +298,17 @@ export interface DiffChange {
   detail: string
   old_value?: string
   new_value?: string
+}
+
+// Compact diff view persisted per version (model_versions.diff_summary).
+// Drives the per-version change badges + drill-down in the history view.
+export interface DiffSummary {
+  has_changes: boolean
+  from_version: string
+  to_version: string
+  counts: Record<string, number> // { added, removed, modified }
+  by_category: Record<string, number> // { field, relation, admin, meta, ... }
+  changes: DiffChange[]
 }
 
 export interface AffectedFile {

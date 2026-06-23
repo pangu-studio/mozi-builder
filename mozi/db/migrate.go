@@ -21,6 +21,9 @@ func Migrate(db *sql.DB) error {
 	if err := migrateV4RelationLabels(db); err != nil {
 		return err
 	}
+	if err := migrateV5ModelVersionDiffSummary(db); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -136,6 +139,17 @@ func migrateV1(db *sql.DB) error {
 func migrateV4RelationLabels(db *sql.DB) error {
 	if _, err := db.Exec(`ALTER TABLE model_relations ADD COLUMN IF NOT EXISTS label TEXT DEFAULT ''`); err != nil {
 		return fmt.Errorf("add model_relations.label: %w", err)
+	}
+	return nil
+}
+
+// migrateV5ModelVersionDiffSummary adds a JSONB column caching each version's
+// diff against its predecessor, so version history can render per-version
+// change summaries without recomputing on every read. Rows written before this
+// migration have NULL here and are backfilled lazily on first history read.
+func migrateV5ModelVersionDiffSummary(db *sql.DB) error {
+	if _, err := db.Exec(`ALTER TABLE model_versions ADD COLUMN IF NOT EXISTS diff_summary JSONB`); err != nil {
+		return fmt.Errorf("add model_versions.diff_summary: %w", err)
 	}
 	return nil
 }
