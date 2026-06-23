@@ -52,15 +52,32 @@ func mermaidRelation(model *mozi.ModelIR, rel mozi.RelationIR) string {
 
 	switch rel.Type {
 	case mozi.RelationHasMany:
-		return fmt.Sprintf("%s ||--o{ %s : %s", from, to, rel.Name)
+		return fmt.Sprintf("%s ||--o{ %s : %s", from, to, mermaidRelationLabel(rel))
 	case mozi.RelationHasOne:
-		return fmt.Sprintf("%s ||--|| %s : %s", from, to, rel.Name)
+		return fmt.Sprintf("%s ||--|| %s : %s", from, to, mermaidRelationLabel(rel))
 	case mozi.RelationBelongsTo:
-		return fmt.Sprintf("%s }o--|| %s : %s", from, to, rel.Name)
+		return fmt.Sprintf("%s }o--|| %s : %s", from, to, mermaidRelationLabel(rel))
 	case mozi.RelationManyToMany:
-		return fmt.Sprintf("%s }o--o{ %s : %s", from, to, rel.Name)
+		return fmt.Sprintf("%s }o--o{ %s : %s", from, to, mermaidRelationLabel(rel))
 	}
 	return ""
+}
+
+func mermaidRelationLabel(rel mozi.RelationIR) string {
+	if rel.Label != "" {
+		return rel.Label
+	}
+
+	switch rel.Type {
+	case mozi.RelationHasMany, mozi.RelationHasOne:
+		return "拥有"
+	case mozi.RelationBelongsTo:
+		return "属于"
+	case mozi.RelationManyToMany:
+		return "关联"
+	default:
+		return rel.Name
+	}
 }
 
 // mermaidEntity converts a model to a Mermaid entity block.

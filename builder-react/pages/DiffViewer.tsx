@@ -30,8 +30,10 @@ const CATEGORY_LABELS: Record<string, string> = {
   field: '字段',
   relation: '关联',
   admin: '后台配置',
+  meta: '模型元数据',
   semantics: '业务语义',
   ui_intent: 'UI 意图',
+  api_intent: 'API 意图',
 }
 
 /** 将版本字符串（YYYYMMDDHHmmss）格式化为可读的本地时间 Tag */
@@ -79,6 +81,13 @@ const DiffViewer: React.FC = () => {
   const removedCount = diff?.changes.filter((c) => c.type === 'removed').length || 0
   const modifiedCount = diff?.changes.filter((c) => c.type === 'modified').length || 0
   const hasPendingPlan = changePlan?.status === 'pending' && !!changePlan.prompt
+  const iconDescriptionItems: NonNullable<React.ComponentProps<typeof Descriptions>['items']> = []
+  if (changePlan?.module_icon) {
+    iconDescriptionItems.push({ label: '模块图标', children: <Tag>{changePlan.module_icon}</Tag> })
+  }
+  if (changePlan?.model_icon) {
+    iconDescriptionItems.push({ label: '模型图标', children: <Tag>{changePlan.model_icon}</Tag> })
+  }
 
   return (
     <div>
@@ -127,7 +136,7 @@ const DiffViewer: React.FC = () => {
 
       {diffLoading ? (
         <div style={{ textAlign: 'center', padding: 80 }}>
-          <Spin size="large" tip="正在加载差异..." />
+          <Spin size="large" description="正在加载差异..." />
         </div>
       ) : !diff ? (
         <Empty description="暂无差异数据" />
@@ -240,10 +249,18 @@ const DiffViewer: React.FC = () => {
                     <Alert
                       type="info"
                       showIcon
-                      message="模型驱动的增量修改"
+                      title="模型驱动的增量修改"
                       description={changePlan.intent}
                       style={{ marginBottom: 12 }}
                     />
+                    {iconDescriptionItems.length > 0 && (
+                      <Descriptions
+                        size="small"
+                        column={1}
+                        style={{ marginBottom: 12 }}
+                        items={iconDescriptionItems}
+                      />
+                    )}
                     <Paragraph
                       copyable={{ text: changePlan.prompt }}
                       style={{

@@ -118,7 +118,7 @@ const ERDiagramPage: React.FC = () => {
       >
         {erLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-            <Spin tip="正在加载 ER 图..." />
+            <Spin description="正在加载 ER 图..." />
           </div>
         ) : erDsl ? (
           <ERDiagram dsl={erDsl} loading={false} direction={direction} zoom={zoom} />

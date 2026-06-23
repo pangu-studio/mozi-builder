@@ -232,6 +232,9 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 		sb.WriteString("\nrelations:\n")
 		for _, r := range model.Relations {
 			sb.WriteString(fmt.Sprintf("  - name: %s\n", r.Name))
+			if r.Label != "" {
+				sb.WriteString(fmt.Sprintf("    label: %s\n", r.Label))
+			}
 			sb.WriteString(fmt.Sprintf("    type: %s\n", r.Type))
 			sb.WriteString(fmt.Sprintf("    target: %s\n", r.Target))
 			if r.BackRef != "" {

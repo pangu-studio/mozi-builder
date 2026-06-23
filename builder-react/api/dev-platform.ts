@@ -60,6 +60,14 @@ export interface ModelSummary {
   sync_status: string // "synced" | "modified" | "new"
 }
 
+export interface ModelVersionInfo {
+  version: string
+  change_summary: string
+  created_by: string
+  created_at: string
+  current: boolean
+}
+
 export interface FieldIR {
   name: string
   type: string // string | int | float | bool | time | text | enum | json
@@ -82,6 +90,7 @@ export interface FieldIR {
 
 export interface RelationIR {
   name: string
+  label?: string
   type: string // has_one | has_many | belongs_to | many_to_many
   target: string
   target_module?: string
@@ -313,6 +322,8 @@ export interface ChangePlanResult {
   model_ref: string
   status: 'pending' | 'applied' | 'no_diff'
   intent: string
+  module_icon?: string
+  model_icon?: string
   semantics: SemanticConfig
   ui_intent: UIIntentConfig
   api_intent: APIIntentConfig
@@ -437,6 +448,11 @@ export function getModel(module: string, name: string) {
     ...res,
     data: normalizeModel(res.data),
   }))
+}
+
+// 模型版本历史
+export function getModelHistory(module: string, name: string) {
+  return getMoziBuilderApiClient().get<ModelVersionInfo[]>(builderPath(`/modules/${module}/models/${name}/history`))
 }
 
 // 创建模型（发送结构化 JSON，后端负责标准化和持久化）

@@ -28,6 +28,9 @@ Passing a partial payload will lose any fields, relations, semantics, ui_intent,
 that are not explicitly included. Use 'mozi model get' first to inspect the current model,
 modify the output, then pass the full result to this command.
 
+Every relation must include "label": the business predicate shown in ER diagrams, such as
+"包含", "归属于", "创建", "产生", "记录", or "表示".
+
 Example:
   mozi model get --model content/Card --json > card.json
   # edit card.json

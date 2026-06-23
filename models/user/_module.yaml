@@ -1,0 +1,4 @@
+# 用户
+module: user
+label: 用户
+api_prefix: user

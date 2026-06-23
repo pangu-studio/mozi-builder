@@ -1,0 +1,18 @@
+[[/* Service & Handler Instantiation */]]
+// mozi:section Init[[.Name]] — [[.Model.Label]]服务初始化（由 mozi 管理）
+	[[.NameCamel]]Svc := service.New[[.Name]]Service(client)
+	[[.NameCamel]]H := [[.ModuleName]].New[[.Name]]Handler([[.NameCamel]]Svc)
+// mozi:end Init[[.Name]]
+
+[[/* Route Registration — module-level group */]]
+// mozi:section Routes[[.ModuleName]] — [[.ModuleLabel]]路由注册（由 mozi 管理）
+	{
+		[[- /* Module route group */ ]]
+		[[.ModuleName]]Group := authorized.Group("/[[.ModuleAPIPrefix]]")
+		[[.ModuleName]]Group.GET("/[[.NamePlural]]", [[.NameCamel]]H.List)
+		[[.ModuleName]]Group.GET("/[[.NamePlural]]/:id", [[.NameCamel]]H.Get)
+		[[.ModuleName]]Group.POST("/[[.NamePlural]]", [[.NameCamel]]H.Create)
+		[[.ModuleName]]Group.PUT("/[[.NamePlural]]/:id", [[.NameCamel]]H.Update)
+		[[.ModuleName]]Group.DELETE("/[[.NamePlural]]/:id", [[.NameCamel]]H.Delete)
+	}
+// mozi:end Routes[[.ModuleName]]

@@ -34,3 +34,34 @@ func TestMermaidEntityFormatsRequiredFieldsAsComment(t *testing.T) {
 		t.Fatalf("required fields must use Mermaid comments, got:\n%s", got)
 	}
 }
+
+func TestMermaidRelationUsesBusinessLabel(t *testing.T) {
+	model := &mozi.ModelIR{Name: "Deck"}
+	rel := mozi.RelationIR{
+		Name:        "cards",
+		Label:       "包含",
+		Type:        mozi.RelationHasMany,
+		TargetModel: "Card",
+	}
+
+	got := mermaidRelation(model, rel)
+	want := "Deck ||--o{ Card : 包含"
+	if got != want {
+		t.Fatalf("mermaid relation = %q, want %q", got, want)
+	}
+}
+
+func TestMermaidRelationFallsBackToRelationTypeLabel(t *testing.T) {
+	model := &mozi.ModelIR{Name: "Card"}
+	rel := mozi.RelationIR{
+		Name:        "deck",
+		Type:        mozi.RelationBelongsTo,
+		TargetModel: "Deck",
+	}
+
+	got := mermaidRelation(model, rel)
+	want := "Card }o--|| Deck : 属于"
+	if got != want {
+		t.Fatalf("mermaid relation = %q, want %q", got, want)
+	}
+}

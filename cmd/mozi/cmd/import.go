@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/pangu-sutido/mozi-builder/mozi"
 	"github.com/pangu-sutido/mozi-builder/mozi/db"
 	"github.com/pangu-sutido/mozi-builder/mozi/parser"
 
@@ -67,6 +69,9 @@ func importSingleFile(store *db.Store, path string) error {
 	if err != nil {
 		return fmt.Errorf("parse %s: %w", path, err)
 	}
+	if err := validateImportModel(model); err != nil {
+		return err
+	}
 
 	if err := store.SaveModel(model, "Imported from "+path, ""); err != nil {
 		return fmt.Errorf("save model %s: %w", model.Name, err)
@@ -91,6 +96,9 @@ func importDirModels(store *db.Store, dir string) error {
 		fmt.Printf("  Module: %s (%s)\n", mod.Name, mod.Label)
 
 		for _, model := range mod.Models {
+			if err := validateImportModel(model); err != nil {
+				return err
+			}
 			if err := store.SaveModel(model, "Imported from YAML", ""); err != nil {
 				return fmt.Errorf("save model %s: %w", model.Name, err)
 			}
@@ -102,6 +110,22 @@ func importDirModels(store *db.Store, dir string) error {
 
 	fmt.Printf("\n✅ Imported %d model(s) into design database\n", total)
 	return nil
+}
+
+func validateImportModel(model *mozi.ModelIR) error {
+	result := parser.Validate(model)
+	if result.Valid {
+		for _, w := range result.Warnings {
+			fmt.Fprintf(os.Stderr, "⚠ %s\n", w.Error())
+		}
+		return nil
+	}
+
+	var errs []string
+	for _, e := range result.Errors {
+		errs = append(errs, e.Error())
+	}
+	return fmt.Errorf("validation failed for %s/%s:\n  %s", model.Module, model.Name, strings.Join(errs, "\n  "))
 }
 
 func openStore(connStr string) (*db.Store, error) {

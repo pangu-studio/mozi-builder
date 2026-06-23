@@ -80,6 +80,17 @@ func runChangePlan(cmd *cobra.Command, args []string) error {
 	// Intent
 	fmt.Printf("🎯 Intent: %s\n\n", plan.Intent)
 
+	if plan.ModuleIcon != "" || plan.ModelIcon != "" {
+		fmt.Println("🎨 Icons:")
+		if plan.ModuleIcon != "" {
+			fmt.Printf("   Module: %s\n", plan.ModuleIcon)
+		}
+		if plan.ModelIcon != "" {
+			fmt.Printf("   Model:  %s\n", plan.ModelIcon)
+		}
+		fmt.Println()
+	}
+
 	// Diff summary
 	if plan.Diff != nil && plan.Diff.HasChanges {
 		fmt.Println("📊 Changes:")

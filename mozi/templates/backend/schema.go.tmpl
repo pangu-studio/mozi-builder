@@ -1,0 +1,43 @@
+[[/* ent schema: {module}_{model}.go */]]
+package schema
+
+import (
+	"entgo.io/ent"
+	[[- if .HasRelations ]]
+	"entgo.io/ent/schema/edge"
+	[[- end ]]
+	"entgo.io/ent/schema/field"
+)
+
+// [[.Name]] holds the schema definition for the [[.Model.Label]] entity.
+type [[.Name]] struct {
+	ent.Schema
+}
+
+// Fields of the [[.Name]].
+func ([[.Name]]) Fields() []ent.Field {
+	return []ent.Field{
+[[- range .Fields ]]
+[[- $hasDef := hasDefault . ]]
+		field.[[.Type.EntFieldType]]("[[.Name]]")[[- if eq .Type "enum"]].Values([[- range $i, $v := .EnumValues]][[if $i]], [[end]]"[[$v]]"[[- end]])[[- end]][[- if .Unique ]].Unique()[[end]][[if .Sensitive]].Sensitive()[[end]][[if not .Required]][[if not .AutoNowAdd]][[if not .AutoNow]][[if not .Primary]][[if not $hasDef]].Optional()[[end]][[end]][[end]][[end]][[end]][[if $hasDef]].Default([[if eq .Type "string"]]"[[defaultVal .]]"[[else if eq .Type "int"]][[defaultVal .]][[else if eq .Type "float"]][[defaultVal .]][[else if eq .Type "bool"]][[defaultVal .]][[else]]"[[defaultVal .]]"[[end]])[[end]][[if .AutoNowAdd]].Immutable()[[end]],
+[[- end ]]
+	}
+}
+
+[[- if .HasRelations ]]
+
+// Edges of the [[.Name]].
+func ([[.Name]]) Edges() []ent.Edge {
+	return []ent.Edge{
+[[- range .HasManyRels ]]
+		edge.To("[[.Name]]", [[.TargetModel]].Type),
+[[- end ]]
+[[- range .HasOneRels ]]
+		edge.To("[[.Name]]", [[.TargetModel]].Type).Unique(),
+[[- end ]]
+[[- range .BelongsToRels ]]
+		edge.From("[[.Name]]", [[.TargetModel]].Type).Ref("[[.BackRef]]").Field("[[.Name]]_id")[[if .Unique]].Unique()[[end]][[if .Required]].Required()[[end]],
+[[- end ]]
+	}
+}
+[[- end ]]

@@ -1,0 +1,147 @@
+# User — 用户
+# 系统用户，支持邮箱注册和微信扫码/小程序登录。桌面端默认离线可用，登录为可选同步功能
+module: user
+model: User
+label: 用户
+description: 系统用户，支持邮箱注册和微信扫码/小程序登录。桌面端默认离线可用，登录为可选同步功能
+table: users
+
+semantics:
+  purpose: "承载系统用户身份，支持邮箱注册和微信（开放平台/小程序）两种登录方式，作为牌组、卡片和复习状态的数据归属主体。桌面端为离线优先设计，登录仅用于跨端数据同步"
+  audience:
+    - "普通用户（学习者）"
+    - "系统管理员"
+    - "系统构建者"
+  user_value: "桌面端用户无需登录即可完整使用本地学习功能（创建牌组、卡片、FSRS 复习），登录后可跨端同步数据；小程序用户通过微信一键登录进行轻量复习"
+  business_rules:
+    - "邮箱全局唯一，但微信用户可暂不绑定邮箱"
+    - "微信用户首次登录后必须在客户端绑定邮箱和密码才能完整使用"
+    - "一个微信 OpenID 只能绑定一个用户"
+    - "密码使用 bcrypt 哈希存储，不存明文"
+    - "微信 OpenID 和手机号为敏感字段，不在列表接口中明文返回"
+    - "登录方式 login_type 为 email / wechat / both，绑定邮箱后升级为 both"
+    - "角色分 admin、user、builder 三种，一个用户可拥有多个角色"
+    - "拥有 admin 角色的用户可查看所有牌组和卡片，user 角色只能查看自己的数据"
+    - "builder 角色（系统构建者）拥有开发平台的使用权限，可进行模型设计和代码生成"
+    - "admin 角色仅限业务功能使用，不可访问开发平台"
+    - "builder 角色可兼具业务管理权限，需同时授予 admin 角色"
+    - "删除用户时级联删除其所有复习日志"
+    - "桌面端默认离线可用，无需登录即可创建牌组、卡片和进行 FSRS 复习"
+    - "桌面端登录为可选操作：用户主动点击「登录」按钮后才触发登录流程，登录仅用于数据同步"
+    - "桌面端登录后顶部栏显示用户头像和昵称，侧边栏显示登录方式"
+  permissions:
+    - "普通用户（role=user）只能查看和修改自己的数据"
+    - "管理员（role=admin）可查看所有牌组、卡片和用户列表，可使用业务管理功能"
+    - "管理员（role=admin）不可访问开发平台，仅限业务相关功能"
+    - "系统构建者（role=builder）可使用开发平台进行模型设计、代码生成和系统构建"
+    - "只有 builder 角色拥有开发平台的访问和使用权限"
+    - "同一个用户可以拥有 admin 和 builder 两种角色"
+    - "桌面端和小程序端通过 JWT 鉴权，JWT 中包含用户角色信息"
+    - "桌面端离线模式下无用户身份，本地数据不与云端关联"
+  lifecycle:
+    - "桌面端：启动应用 → 默认离线模式 → 可完整使用本地功能 → 可选登录 → 登录后开启同步"
+    - "小程序端：微信一键登录 → 激活 → 进入学习"
+    - "桌面端微信用户 → 绑定邮箱 → 升级为 both"
+    - "暂不支持用户自行注销，由管理员操作"
+    - "created_at 和 updated_at 自动维护"
+    - "复习日志随用户的学习行为自动积累"
+
+fields:
+  - name: id
+    type: string
+    label: 用户ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: email
+    type: string
+    label: 邮箱
+    unique: true
+    form_type: email
+    searchable: true
+  - name: password
+    type: string
+    label: 密码
+    sensitive: true
+    form_type: password
+    listable: false
+  - name: wechat_openid
+    type: string
+    label: 微信OpenID
+    unique: true
+    sensitive: true
+    listable: false
+    editable: false
+  - name: nickname
+    type: string
+    label: 昵称
+    default: ""
+    searchable: true
+  - name: avatar_url
+    type: string
+    label: 头像
+    listable: false
+    editable: false
+  - name: phone
+    type: string
+    label: 手机号
+    sensitive: true
+    listable: false
+    editable: false
+  - name: role
+    type: json
+    label: 角色
+    default: "["user"]"
+    enum_values: [admin, user, builder]
+    form_type: select
+  - name: login_type
+    type: enum
+    label: 登录方式
+    default: "email"
+    enum_values: [email, wechat, both]
+    form_type: select
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    editable: false
+    auto_now_add: true
+  - name: updated_at
+    type: time
+    label: 更新时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now: true
+
+relations:
+  - name: decks
+    label: 拥有
+    type: has_many
+    target: content/Deck
+    back_ref: user
+    cascade: true
+  - name: states
+    label: 跟踪
+    type: has_many
+    target: content/CardState
+    back_ref: user
+    cascade: true
+  - name: review_logs
+    label: 创建
+    type: has_many
+    target: content/ReviewLog
+    back_ref: user
+    cascade: true
+
+admin:
+  list_columns: [email, nickname, login_type, role, phone, created_at]
+  search_fields: [email, nickname, phone]
+  default_sort: created_at
+  default_order: desc
+  page_size: 20
+
+display:
+  icon: UserOutlined

@@ -32,6 +32,7 @@ import FieldTable from '../components/FieldTable'
 import FieldEditor from '../components/FieldEditor'
 import RelationEditor from '../components/RelationEditor'
 import ModelYamlPreview from '../components/ModelYamlPreview'
+import IconSelect from '../components/IconSelect'
 import { useDevPlatformStore } from '../stores/dev-platform'
 import { useMoziBuilder } from '..'
 import {
@@ -673,7 +674,7 @@ const ModelDesigner: React.FC = () => {
   if (modelLoading) {
     return (
       <div style={{ textAlign: 'center', padding: 80 }}>
-        <Spin size="large" tip="正在加载模型..." />
+        <Spin size="large" description="正在加载模型..." />
       </div>
     )
   }
@@ -749,7 +750,7 @@ const ModelDesigner: React.FC = () => {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="这里更适合查看和微调模型"
+        title="这里更适合查看和微调模型"
         description="完整建模建议先在 AI agent 会话中完成，再回到这里检查字段、关系、业务语义、UI 意图和 API 意图是否符合预期。"
       />
 
@@ -816,11 +817,11 @@ const ModelDesigner: React.FC = () => {
                   </div>
                   <div style={{ flex: '1 1 200px', minWidth: 180 }}>
                     <Text type="secondary" style={{ fontSize: 12 }}>图标</Text>
-                    <Input
-                      placeholder="如 UserOutlined"
+                    <IconSelect
+                      placeholder="选择模型图标，如 UserOutlined"
                       value={localModel.display?.icon || ''}
-                      onChange={(e) =>
-                        setLocalModel({ ...localModel, display: { ...localModel.display, icon: e.target.value } })
+                      onChange={(icon) =>
+                        setLocalModel({ ...localModel, display: { ...localModel.display, icon: icon || '' } })
                       }
                     />
                   </div>
@@ -1189,10 +1190,10 @@ const ModelDesigner: React.FC = () => {
 
       <Card
         size="small"
-        title="关联关系"
+        title="关系"
         extra={
           <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={handleAddRelation}>
-            添加关联
+            添加关系
           </Button>
         }
       >
@@ -1210,7 +1211,14 @@ const ModelDesigner: React.FC = () => {
                 render: (v: string) => <Text code>{v}</Text>,
               },
               {
-                title: '类型',
+                title: '关系谓词',
+                dataIndex: 'label',
+                key: 'label',
+                width: 100,
+                render: (v?: string) => v || <Text type="secondary">-</Text>,
+              },
+              {
+                title: '关系类型',
                 dataIndex: 'type',
                 key: 'type',
                 width: 100,
@@ -1295,7 +1303,7 @@ const ModelDesigner: React.FC = () => {
           type="info"
           showIcon
           style={{ marginBottom: 12 }}
-          message="调用方保存在当前业务的设计数据库中"
+          title="调用方保存在当前业务的设计数据库中"
           description="保存值会写入模型 YAML；展示名只用于开发平台页面。别名用于兼容历史建模中的中文或旧命名。"
         />
         <Table

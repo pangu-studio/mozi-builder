@@ -1,0 +1,111 @@
+import { create } from 'zustand'
+import {
+  getAdmin[[.Name]]List,
+  getAdmin[[.Name]]Detail,
+  createAdmin[[.Name]],
+  updateAdmin[[.Name]],
+  deleteAdmin[[.Name]],
+  type Admin[[.Name]],
+} from '../../api/[[.ModuleName]]'
+
+interface [[.Name]]State {
+  data: Admin[[.Name]][]
+  total: number
+  loading: boolean
+  detailLoading: boolean
+  submitting: boolean
+  page: number
+  [[- if .SearchFields ]]
+  keyword: string
+  [[- end ]]
+  pageSize: number
+  current: Admin[[.Name]] | null
+  setPage: (page: number) => void
+  [[- if .SearchFields ]]
+  setKeyword: (keyword: string) => void
+  [[- end ]]
+  loadList: () => Promise<void>
+  loadDetail: (id: string) => Promise<Admin[[.Name]]>
+  createItem: (data: Parameters<typeof createAdmin[[.Name]]>[0]) => Promise<Admin[[.Name]]>
+  updateItem: (id: string, data: Parameters<typeof updateAdmin[[.Name]]>[1]) => Promise<Admin[[.Name]]>
+  deleteItem: (id: string) => Promise<void>
+  resetCurrent: () => void
+}
+
+export const use[[.Name]]Store = create<[[.Name]]State>((set, get) => ({
+  data: [],
+  total: 0,
+  loading: false,
+  detailLoading: false,
+  submitting: false,
+  page: 1,
+  [[- if .SearchFields ]]
+  keyword: '',
+  [[- end ]]
+  pageSize: [[.Admin.PageSize]],
+  current: null,
+
+  setPage: (page) => set({ page }),
+  [[- if .SearchFields ]]
+  setKeyword: (keyword) => set({ keyword, page: 1 }),
+  [[- end ]]
+
+  loadList: async () => {
+    const { page, pageSize[[if .SearchFields]], keyword[[end]] } = get()
+    set({ loading: true })
+    try {
+      const res = await getAdmin[[.Name]]List({
+        page,
+        page_size: pageSize,
+        [[- if .SearchFields ]]
+        keyword,
+        [[- end ]]
+      })
+      set({
+        data: res.data.[[.NamePlural]] || [],
+        total: res.data.total || 0,
+      })
+    } finally {
+      set({ loading: false })
+    }
+  },
+
+  loadDetail: async (id) => {
+    set({ detailLoading: true })
+    try {
+      const res = await getAdmin[[.Name]]Detail(id)
+      set({ current: res.data })
+      return res.data
+    } finally {
+      set({ detailLoading: false })
+    }
+  },
+
+  createItem: async (data) => {
+    set({ submitting: true })
+    try {
+      const res = await createAdmin[[.Name]](data)
+      return res.data
+    } finally {
+      set({ submitting: false })
+    }
+  },
+
+  updateItem: async (id, data) => {
+    set({ submitting: true })
+    try {
+      const res = await updateAdmin[[.Name]](id, data)
+      set({ current: res.data })
+      return res.data
+    } finally {
+      set({ submitting: false })
+    }
+  },
+
+  deleteItem: async (id) => {
+    await deleteAdmin[[.Name]](id)
+    await get().loadList()
+  },
+
+  resetCurrent: () => set({ current: null }),
+}))

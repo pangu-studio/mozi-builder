@@ -1,0 +1,30 @@
+// ====== [[.Model.Label]] ======
+// mozi:api [[.Name]]
+
+export interface Admin[[.Name]] {
+  id: string
+[[- range .ListFields ]]
+  [[.Name]]: [[TSTypeForField .]]
+[[- end ]]
+}
+
+export function getAdmin[[.Name]]List(params: { page?: number; page_size?: number[[if .SearchFields]]; keyword?: string[[end]] }) {
+  return api.get<{ [[.NamePlural]]: Admin[[.Name]][]; total: number }>('/admin/[[.ModuleAPIPrefix]]/[[.NamePlural]]', { params })
+}
+
+export function getAdmin[[.Name]]Detail(id: string) {
+  return api.get<Admin[[.Name]]>('/admin/[[.ModuleAPIPrefix]]/[[.NamePlural]]/' + id)
+}
+
+export function createAdmin[[.Name]](data: Omit<Admin[[.Name]], 'id'[[range .Fields]][[if .AutoNowAdd]] | '[[.Name]]'[[end]][[end]]>) {
+  return api.post<Admin[[.Name]]>('/admin/[[.ModuleAPIPrefix]]/[[.NamePlural]]', data)
+}
+
+export function updateAdmin[[.Name]](id: string, data: Partial<Admin[[.Name]]>) {
+  return api.put<Admin[[.Name]]>('/admin/[[.ModuleAPIPrefix]]/[[.NamePlural]]/' + id, data)
+}
+
+export function deleteAdmin[[.Name]](id: string) {
+  return api.delete('/admin/[[.ModuleAPIPrefix]]/[[.NamePlural]]/' + id)
+}
+// mozi:end [[.Name]]

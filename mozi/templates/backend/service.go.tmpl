@@ -1,0 +1,151 @@
+[[/* service: internal/service/{module}/{model}.go */]]
+package [[.ModuleName]]
+
+import (
+	"context"
+	"fmt"
+
+	"[[.ModulePath]]/ent"
+	"[[.ModulePath]]/ent/[[.NameLower]]"
+	"[[.ModulePath]]/internal/data"
+
+	"github.com/google/uuid"
+)
+
+// [[.Name]]Service provides admin CRUD operations for [[.Model.Label]].
+type [[.Name]]Service struct {
+	client *ent.Client
+}
+
+// New[[.Name]]Service creates a new [[.Name]]Service.
+func New[[.Name]]Service(client *ent.Client) *[[.Name]]Service {
+	return &[[.Name]]Service{client: client}
+}
+
+// mozi:section List[[.Name]] — [[.Model.Label]]列表查询（由 mozi 管理）
+func (s *[[.Name]]Service) List(ctx context.Context, page, pageSize int[[if .SearchFields]], keyword string[[end]]) (*Admin[[.Name]]ListResp, error) {
+	client := data.GetClient(ctx, s.client)
+	query := client.[[.Name]].Query()
+
+	[[- if .SearchFields ]]
+	if keyword != "" {
+		[[- $first := true ]]
+		[[- range .SearchFields ]]
+		[[- if $first ]]
+		query = query.Where([[$.NameLower]].Or(
+			[[$.NameLower]].[[snakeToPascal .Name]]ContainsFold(keyword),
+		[[- else ]]
+			[[$.NameLower]].[[snakeToPascal .Name]]ContainsFold(keyword),
+		[[- end ]]
+		[[- $first = false ]]
+		[[- end ]]
+		))
+	}
+	[[- end ]]
+
+	total, err := query.Count(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("count [[.NamePlural]]: %w", err)
+	}
+
+	items, err := query.
+		Order(ent.[[if eq .Admin.DefaultOrder "desc"]]Desc[[else]]Asc[[end]]([[.NameLower]].Field[[snakeToPascal .Admin.DefaultSort]])).
+		Limit(pageSize).
+		Offset((page - 1) * pageSize).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("query [[.NamePlural]]: %w", err)
+	}
+
+	result := make([]Admin[[.Name]]Item, 0, len(items))
+	for _, item := range items {
+		result = append(result, Admin[[.Name]]Item{
+		[[- range .ListFields ]]
+			[[snakeToPascal .Name]]: item.[[snakeToPascal .Name]],
+		[[- end ]]
+		})
+	}
+
+	return &Admin[[.Name]]ListResp{
+		[[snakeToPascal .NamePlural]]: result,
+		Total: total,
+	}, nil
+}
+// mozi:end List[[.Name]]
+
+// mozi:section Get[[.Name]] — [[.Model.Label]]详情（由 mozi 管理）
+func (s *[[.Name]]Service) Get(ctx context.Context, id string) (*Admin[[.Name]]Item, error) {
+	client := data.GetClient(ctx, s.client)
+	item, err := client.[[.Name]].Get(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get [[.NameSnake]]: %w", err)
+	}
+
+	return &Admin[[.Name]]Item{
+	[[- range .ListFields ]]
+		[[snakeToPascal .Name]]: item.[[snakeToPascal .Name]],
+	[[- end ]]
+	}, nil
+}
+// mozi:end Get[[.Name]]
+
+// mozi:section Create[[.Name]] — 创建[[.Model.Label]]（由 mozi 管理）
+func (s *[[.Name]]Service) Create(ctx context.Context, req *Admin[[.Name]]CreateReq) (*Admin[[.Name]]Item, error) {
+	client := data.GetClient(ctx, s.client)
+
+	create := client.[[.Name]].Create()
+	[[- if .PrimaryField ]]
+	[[- if eq .PrimaryField.Generated "uuid" ]]
+	create.SetID(uuid.New().String())
+	[[- end ]]
+	[[- end ]]
+	[[- range .EditableFields ]]
+	create.Set[[snakeToPascal .Name]](req.[[snakeToPascal .Name]])
+	[[- end ]]
+
+	item, err := create.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("create [[.NameSnake]]: %w", err)
+	}
+
+	return &Admin[[.Name]]Item{
+	[[- range .ListFields ]]
+		[[snakeToPascal .Name]]: item.[[snakeToPascal .Name]],
+	[[- end ]]
+	}, nil
+}
+// mozi:end Create[[.Name]]
+
+// mozi:section Update[[.Name]] — 更新[[.Model.Label]]（由 mozi 管理）
+func (s *[[.Name]]Service) Update(ctx context.Context, id string, req *Admin[[.Name]]UpdateReq) (*Admin[[.Name]]Item, error) {
+	client := data.GetClient(ctx, s.client)
+
+	update := client.[[.Name]].UpdateOneID(id)
+	[[- range .EditableFields ]]
+	if req.[[snakeToPascal .Name]] != nil {
+		update.Set[[snakeToPascal .Name]](*req.[[snakeToPascal .Name]])
+	}
+	[[- end ]]
+
+	item, err := update.Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("update [[.NameSnake]]: %w", err)
+	}
+
+	return &Admin[[.Name]]Item{
+	[[- range .ListFields ]]
+		[[snakeToPascal .Name]]: item.[[snakeToPascal .Name]],
+	[[- end ]]
+	}, nil
+}
+// mozi:end Update[[.Name]]
+
+// mozi:section Delete[[.Name]] — 删除[[.Model.Label]]（由 mozi 管理）
+func (s *[[.Name]]Service) Delete(ctx context.Context, id string) error {
+	client := data.GetClient(ctx, s.client)
+	if err := client.[[.Name]].DeleteOneID(id).Exec(ctx); err != nil {
+		return fmt.Errorf("delete [[.NameSnake]]: %w", err)
+	}
+	return nil
+}
+// mozi:end Delete[[.Name]]

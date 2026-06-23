@@ -1,0 +1,143 @@
+import React, { useEffect } from 'react'
+import { Form, Input, InputNumber, Select, Switch, DatePicker, Button, Typography, Card, Space, message } from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
+import { useNavigate, useParams } from 'react-router-dom'
+import dayjs from 'dayjs'
+import { use[[.Name]]Store } from '../../stores/[[.ModuleName]]/[[.NameCamel]]'
+
+const { Title } = Typography
+
+const [[.Name]]Form: React.FC = () => {
+  const [form] = Form.useForm()
+  const navigate = useNavigate()
+  const { id } = useParams<{ id: string }>()
+  const {
+    detailLoading,
+    submitting,
+    loadDetail,
+    createItem,
+    updateItem,
+    resetCurrent,
+  } = use[[.Name]]Store()
+
+  const isEdit = !!id && id !== 'new'
+
+  useEffect(() => {
+    if (isEdit) {
+      loadDetail(id)
+        .then((res) => {
+          const data = res
+          form.setFieldsValue({
+            [[- range .EditableFields ]]
+            [[- if eq .Type "time" ]]
+            [[.Name]]: data.[[.Name]] ? dayjs(data.[[.Name]]) : undefined,
+            [[- else ]]
+            [[.Name]]: data.[[.Name]],
+            [[- end ]]
+            [[- end ]]
+          })
+        })
+        .catch(() => message.error('加载[[.Model.Label]]信息失败'))
+    } else {
+      resetCurrent()
+    }
+  }, [id, isEdit, form, loadDetail, resetCurrent])
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields()
+      [[- range .EditableFields ]]
+      [[- if eq .Type "time" ]]
+      if (values.[[.Name]]) values.[[.Name]] = values.[[.Name]].toISOString()
+      [[- end ]]
+      [[- end ]]
+
+      if (isEdit) {
+        await updateItem(id, values)
+        message.success('更新成功')
+      } else {
+        await createItem(values)
+        message.success('创建成功')
+      }
+      navigate('/[[.ModuleAPIPrefix]]/[[.NamePlural]]')
+    } catch (err) {
+      if (err && typeof err === 'object' && 'errorFields' in err) {
+        return
+      }
+      message.error(isEdit ? '更新失败' : '创建失败')
+    }
+  }
+
+  return (
+    <div>
+      <Space style={{ marginBottom: 24 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/[[.ModuleAPIPrefix]]/[[.NamePlural]]')}>
+          返回列表
+        </Button>
+      </Space>
+      <Card loading={detailLoading}>
+        <Title level={4} style={{ marginBottom: 24 }}>
+          {isEdit ? '编辑[[.Model.Label]]' : '新建[[.Model.Label]]'}
+        </Title>
+        <Form
+          form={form}
+          layout="vertical"
+          style={{ maxWidth: 600 }}
+          initialValues={{
+          [[- range .EditableFields ]]
+            [[- if .Default ]]
+            [[.Name]]: [[if eq .Type "string"]]'[[defaultVal .]]'[[else if eq .Type "int"]][[defaultVal .]][[else if eq .Type "float"]][[defaultVal .]][[else if eq .Type "bool"]][[if eq (defaultVal .) "true"]]true[[else]]false[[end]][[else]]'[[defaultVal .]]'[[end]],
+            [[- end ]]
+          [[- end ]]
+          }}
+        >
+          [[- range .EditableFields ]]
+
+          <Form.Item
+            name="[[.Name]]"
+            label="[[.Label]]"
+            [[- if .Required ]]
+            rules={[{ required: true, message: '请输入[[.Label]]' }]}
+            [[- end ]]
+          >
+            [[- if eq .FormType "text" ]]
+            <Input placeholder="请输入[[.Label]]" />
+            [[- else if eq .FormType "email" ]]
+            <Input placeholder="请输入[[.Label]]" type="email" />
+            [[- else if eq .FormType "password" ]]
+            <Input.Password placeholder="请输入[[.Label]]" />
+            [[- else if eq .FormType "number" ]]
+            <InputNumber style={{ width: '100%' }} placeholder="请输入[[.Label]]" />
+            [[- else if eq .FormType "select" ]]
+            <Select placeholder="请选择[[.Label]]">
+              [[- range .EnumValues ]]
+              <Select.Option value="[[.]]">[[.]]</Select.Option>
+              [[- end ]]
+            </Select>
+            [[- else if eq .FormType "switch" ]]
+            <Switch />
+            [[- else if eq .FormType "date" ]]
+            <DatePicker showTime style={{ width: '100%' }} />
+            [[- else if eq .FormType "textarea" ]]
+            <Input.TextArea rows={4} placeholder="请输入[[.Label]]" />
+            [[- else ]]
+            <Input placeholder="请输入[[.Label]]" />
+            [[- end ]]
+          </Form.Item>
+          [[- end ]]
+
+          <Form.Item>
+            <Space>
+              <Button type="primary" loading={submitting} onClick={handleSubmit}>
+                {isEdit ? '保存修改' : '创建[[.Model.Label]]'}
+              </Button>
+              <Button onClick={() => navigate('/[[.ModuleAPIPrefix]]/[[.NamePlural]]')}>取消</Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Card>
+    </div>
+  )
+}
+
+export default [[.Name]]Form

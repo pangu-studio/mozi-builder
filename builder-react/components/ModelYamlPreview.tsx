@@ -132,6 +132,7 @@ function modelToYaml(model: ModelIR): string {
     lines.push('relations:')
     for (const r of model.relations) {
       lines.push(`  - name: ${r.name}`)
+      if (r.label) lines.push(`    label: ${r.label}`)
       lines.push(`    type: ${r.type}`)
       lines.push(`    target: ${r.target_module || model.module}/${r.target_model || r.target}`)
       if (r.back_ref) lines.push(`    back_ref: ${r.back_ref}`)

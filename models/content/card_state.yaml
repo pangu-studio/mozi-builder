@@ -1,0 +1,95 @@
+# CardState — 复习状态
+# 每张卡片对每个用户的 FSRS 记忆状态，由客户端 WASM 计算后同步到服务端
+module: content
+model: CardState
+label: 复习状态
+description: 每张卡片对每个用户的 FSRS 记忆状态，由客户端 WASM 计算后同步到服务端
+table: card_states
+
+fields:
+  - name: id
+    type: string
+    label: 状态ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: stability
+    type: float
+    label: 稳定性
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: difficulty
+    type: float
+    label: 难度
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: reps
+    type: int
+    label: 复习次数
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: lapses
+    type: int
+    label: 遗忘次数
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: state
+    type: int
+    label: 状态码
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: last_review
+    type: time
+    label: 上次复习时间
+    form_type: date
+    listable: false
+    editable: false
+  - name: due
+    type: time
+    label: 到期时间
+    form_type: date
+    listable: false
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now_add: true
+  - name: updated_at
+    type: time
+    label: 更新时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now: true
+
+relations:
+  - name: card
+    label: 表示
+    type: belongs_to
+    target: content/Card
+    back_ref: state
+  - name: user
+    label: 归属
+    type: belongs_to
+    target: user/User
+    back_ref: states
+
+admin:
+  list_columns: [card_id, user_id, state, reps, due, last_review]
+  default_sort: due
+  default_order: asc
+  page_size: 20

@@ -227,13 +227,13 @@ const APIWorkbench: React.FC = () => {
         type="info"
         showIcon
         style={{ marginBottom: 16 }}
-        message="API 设计与实施由 Agent 辅助完成"
+        title="API 设计与实施由 Agent 辅助完成"
         description="这里展示代码导出的真实 OpenAPI 契约。显示名、模块归属、示例参数等可以后续做轻量微调；HTTP 方法、URL、请求响应结构应回到 Agent 和代码层修改。"
       />
 
       {loading && !assetIndex ? (
         <div style={{ textAlign: 'center', padding: 80 }}>
-          <Spin size="large" tip="正在解析 OpenAPI..." />
+          <Spin size="large" description="正在解析 OpenAPI..." />
         </div>
       ) : !assetIndex ? (
         <Empty description="暂无 API 资产数据" />
@@ -352,18 +352,19 @@ const APIWorkbench: React.FC = () => {
                                     {(selectedEndpoint?.parameters || [])
                                       .filter((p) => p.in === 'path')
                                       .map((p) => (
-                                        <Input
-                                          key={p.name}
-                                          addonBefore={p.name}
-                                          placeholder={p.description || `输入 ${p.name}`}
-                                          value={debugPathParams[p.name] || ''}
-                                          onChange={(e) =>
-                                            setDebugPathParams((prev) => ({
-                                              ...prev,
-                                              [p.name]: e.target.value,
-                                            }))
-                                          }
-                                        />
+                                        <Space.Compact key={p.name} style={{ width: '100%' }}>
+                                          <Input style={{ width: 140 }} value={p.name} disabled />
+                                          <Input
+                                            placeholder={p.description || `输入 ${p.name}`}
+                                            value={debugPathParams[p.name] || ''}
+                                            onChange={(e) =>
+                                              setDebugPathParams((prev) => ({
+                                                ...prev,
+                                                [p.name]: e.target.value,
+                                              }))
+                                            }
+                                          />
+                                        </Space.Compact>
                                       ))}
                                   </Space>
                                 </Form.Item>

@@ -23,6 +23,8 @@ A new version is created automatically.
 
 The JSON payload must be a complete ModelIR object including module, model name, fields,
 relations, admin config, and optionally semantics, ui_intent, and api_intent.
+Every relation must include "label": the business predicate shown in ER diagrams, such as
+"包含", "归属于", "创建", "产生", "记录", or "表示".
 
 Example:
   mozi model create --json '{
@@ -32,7 +34,9 @@ Example:
     "description": "用户的学习笔记",
     "table": "notes",
     "fields": [...],
-    "relations": [...],
+    "relations": [
+      {"name":"cards","label":"包含","type":"has_many","target":"content/Card","back_ref":"deck"}
+    ],
     "admin": {...}
   }'`,
 	RunE: runModelCreate,

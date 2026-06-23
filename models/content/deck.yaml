@@ -1,0 +1,90 @@
+# Deck — 牌组
+# 牌组是卡片的容器，用户可创建多个牌组来组织卡片
+module: content
+model: Deck
+label: 牌组
+description: 牌组是卡片的容器，用户可创建多个牌组来组织卡片
+table: decks
+
+semantics:
+  purpose: "卡牌组是卡片的容器，用户可创建多个卡牌组来组织卡片。卡牌组可关联到分组下，形成分组→卡牌组→卡片的三层结构。"
+  audience:
+    - "桌面端用户"
+    - "小程序用户"
+  user_value: "帮助用户按主题或分类组织卡片，通过分组层级进行管理"
+  business_rules:
+    - "卡牌组必须属于某个用户"
+    - "卡牌组可关联到一个分组（可选），未关联时显示在「未分类」区域"
+    - "将卡牌组移动到其他分组时，只需更新 group_id"
+    - "删除卡牌组时级联删除其下所有卡片及卡片的复习状态"
+    - "卡牌组不直接关联复习状态，复习状态绑定在卡片级别"
+  permissions:
+    - "用户只能操作自己的卡牌组"
+    - "用户只能将卡牌组移动到自己的分组下"
+  lifecycle:
+    - "用户在桌面端侧边栏分组上右键选择「新建卡牌组」，填写名称和描述后创建"
+    - "用户在桌面端卡牌组上右键选择「移动到其他分组」，选择目标分组后移动"
+    - "用户也可通过拖拽将卡牌组拖入分组"
+    - "用户可编辑卡牌组名称和描述"
+    - "用户可删除卡牌组（级联删除其下所有卡片）"
+
+fields:
+  - name: id
+    type: string
+    label: 牌组ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: name
+    type: string
+    label: 名称
+    required: true
+    searchable: true
+    listable: false
+    editable: false
+  - name: description
+    type: string
+    label: 描述
+    form_type: textarea
+    listable: false
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now_add: true
+  - name: updated_at
+    type: time
+    label: 更新时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now: true
+
+relations:
+  - name: user
+    label: 归属
+    type: belongs_to
+    target: user/User
+    back_ref: decks
+  - name: cards
+    label: 包含
+    type: has_many
+    target: content/Card
+    back_ref: deck
+    cascade: true
+  - name: group
+    label: 归集
+    type: belongs_to
+    target: content/Group
+    back_ref: decks
+
+admin:
+  list_columns: [name, description, created_at]
+  search_fields: [name]
+  default_sort: created_at
+  default_order: desc
+  page_size: 20

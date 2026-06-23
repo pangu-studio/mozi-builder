@@ -39,6 +39,7 @@ const RelationEditor: React.FC<RelationEditorProps> = ({
       if (relation) {
         form.setFieldsValue({
           name: relation.name,
+          label: relation.label || '',
           type: relation.type,
           target: relation.target_module
             ? `${relation.target_module}/${relation.target_model}`
@@ -58,6 +59,7 @@ const RelationEditor: React.FC<RelationEditorProps> = ({
       const targetParts = values.target.split('/')
       const result: RelationIR = {
         name: values.name,
+        label: values.label || '',
         type: values.type,
         target: values.target,
         target_module: targetParts.length > 1 ? targetParts[0] : currentModule,
@@ -73,7 +75,7 @@ const RelationEditor: React.FC<RelationEditorProps> = ({
 
   return (
     <Modal
-      title={isEdit ? `编辑关联：${relation?.name}` : '新建关联'}
+      title={isEdit ? `编辑关系：${relation?.name}` : '新建关系'}
       open={visible}
       onOk={handleOk}
       onCancel={onCancel}
@@ -86,11 +88,14 @@ const RelationEditor: React.FC<RelationEditorProps> = ({
           label="关联名"
           rules={[{ required: true, message: '请输入关联名' }]}
         >
-          <Input placeholder="如 decks, owner" />
+          <Input placeholder="代码中从当前模型访问目标模型，如 cards、owner" />
+        </Form.Item>
+        <Form.Item name="label" label="关系谓词">
+          <Input placeholder="用于 ER 图展示，如 包含、归属于、创建、产生" />
         </Form.Item>
         <Form.Item
           name="type"
-          label="关联类型"
+          label="关系类型"
           rules={[{ required: true }]}
         >
           <Select options={RELATION_TYPES} />
@@ -109,8 +114,8 @@ const RelationEditor: React.FC<RelationEditorProps> = ({
             }
           />
         </Form.Item>
-        <Form.Item name="back_ref" label="反向引用名">
-          <Input placeholder="在目标模型中反向引用的字段名" />
+        <Form.Item name="back_ref" label="反向导航属性">
+          <Input placeholder="代码中从目标模型反向访问当前模型，如 deck、created_notes" />
         </Form.Item>
         <Form.Item name="cascade" valuePropName="checked" label="级联删除">
           <Switch />

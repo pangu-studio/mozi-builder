@@ -1,0 +1,8 @@
+// mozi:import [[.ModuleName]]/[[.Name]]
+import [[.Name]]List from './pages/[[.ModuleName]]/[[.Name]]List'
+import [[.Name]]Form from './pages/[[.ModuleName]]/[[.Name]]Form'
+// mozi:end import [[.ModuleName]]/[[.Name]]
+{/* mozi:route [[.ModuleName]]/[[.Name]] — [[.Model.Label]]路由（由 mozi 管理） */}
+            <Route path="[[.ModuleAPIPrefix]]/[[.NamePlural]]" element={<[[.Name]]List />} />
+            <Route path="[[.ModuleAPIPrefix]]/[[.NamePlural]]/:id" element={<[[.Name]]Form />} />
+{/* mozi:end route [[.ModuleName]]/[[.Name]] */}

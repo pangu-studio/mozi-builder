@@ -1,0 +1,131 @@
+import React, { useEffect } from 'react'
+import { Table, Typography, Input, Space, Button, Tag, message, Popconfirm } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
+import { useNavigate } from 'react-router-dom'
+import dayjs from 'dayjs'
+import type { Admin[[.Name]] } from '../../api/[[.ModuleName]]'
+import { use[[.Name]]Store } from '../../stores/[[.ModuleName]]/[[.NameCamel]]'
+
+const { Title } = Typography
+
+const [[.Name]]List: React.FC = () => {
+  const navigate = useNavigate()
+  const {
+    data,
+    total,
+    loading,
+    page,
+    pageSize,
+  [[- if .SearchFields ]]
+    keyword,
+    setKeyword,
+  [[- end ]]
+    setPage,
+    loadList,
+    deleteItem,
+  } = use[[.Name]]Store()
+
+  useEffect(() => {
+    loadList().catch(() => message.error('加载[[.Model.Label]]列表失败'))
+  }, [loadList, page[[if .SearchFields]], keyword[[end]]])
+
+  [[- if .SearchFields ]]
+  const handleSearch = (value: string) => {
+    setKeyword(value)
+  }
+  [[- end ]]
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteItem(id)
+      message.success('删除成功')
+    } catch {
+      message.error('删除失败')
+    }
+  }
+
+  // mozi:columns [[.Name]] — 自动生成的列定义
+  const columns = [
+    [[- range .ListFields ]]
+    {
+      title: '[[.Label]]',
+      dataIndex: '[[.Name]]',
+      key: '[[.Name]]',
+      [[- if eq .Name "email" ]]width: 250,
+      [[- else if eq .Name "id" ]]width: 280,
+      [[- else ]]width: 150,
+      [[- end ]]
+      [[- if eq .Type "time" ]]
+      render: (v: string) => v ? dayjs(v).format('YYYY-MM-DD HH:mm') : '-',
+      [[- else if eq .Type "enum" ]]
+      render: (v: string) => {
+        [[- if .EnumValues ]]
+        const colorMap: Record<string, string> = {
+          [[- range .EnumValues ]]
+          '[[.]]': '[[if eq . "active"]]green[[else if eq . "disabled"]]red[[else if eq . "qa"]]blue[[else if eq . "cloze"]]orange[[else if eq . "admin"]]purple[[else]]default[[end]]',
+          [[- end ]]
+        }
+        return <Tag color={colorMap[v] || 'default'}>{v}</Tag>
+        [[- else ]]
+        return <Tag>{v}</Tag>
+        [[- end ]]
+      },
+      [[- else if eq .Type "text" ]]
+      ellipsis: true,
+      [[- end ]]
+    },
+    [[- end ]]
+    {
+      title: '操作',
+      key: 'actions',
+      width: 180,
+      render: (_: unknown, record: Admin[[.Name]]) => (
+        <Space>
+          <Button size="small" onClick={() => navigate('/[[.ModuleAPIPrefix]]/[[.NamePlural]]/' + record.id)}>
+            编辑
+          </Button>
+          <Popconfirm title="确定删除？" onConfirm={() => handleDelete(record.id)}>
+            <Button size="small" danger>删除</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ]
+  // mozi:end columns [[.Name]]
+
+  return (
+    <div>
+      <Title level={4} style={{ marginBottom: 24 }}>[[.Model.Label]]管理</Title>
+      <Space style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        [[- if .SearchFields ]]
+        <Input.Search
+          placeholder="搜索[[range $i, $f := .SearchFields]][[if $i]]/[[end]][[$f.Label]][[end]]"
+          allowClear
+          style={{ width: 300 }}
+          onSearch={handleSearch}
+        />
+        [[- else ]]
+        <div />
+        [[- end ]]
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/[[.ModuleAPIPrefix]]/[[.NamePlural]]/new')}>
+          新建[[.Model.Label]]
+        </Button>
+      </Space>
+      <Table
+        rowKey="id"
+        columns={columns}
+        dataSource={data}
+        loading={loading}
+        pagination={{
+          current: page,
+          pageSize,
+          total,
+          showTotal: (t: number) => `共 ${t} 条`,
+          onChange: (p: number) => setPage(p),
+        }}
+      />
+    </div>
+  )
+}
+
+export default [[.Name]]List

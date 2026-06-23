@@ -1,0 +1,112 @@
+# ReviewLog — 复习日志
+# 记录每一次复习评分事件，支撑学习统计（连续打卡、累计复习数、评分分布）和复习历史追溯
+module: content
+model: ReviewLog
+label: 复习日志
+description: 记录每一次复习评分事件，支撑学习统计（连续打卡、累计复习数、评分分布）和复习历史追溯
+table: review_logs
+
+semantics:
+  purpose: "记录每一次复习评分事件，支撑学习统计（连续打卡、累计复习数、评分分布）和复习历史追溯。每条日志不可变，作为学习行为的审计记录。"
+  audience:
+    - "桌面端用户"
+    - "小程序用户"
+  user_value: "让用户看到自己的学习轨迹和进步，通过连续打卡等激励机制保持学习动力"
+  business_rules:
+    - "每次复习评分提交时创建一条日志，日志不可修改"
+    - "复习日志记录 FSRS 参数变化（stability/difficulty 的前后值），便于分析学习效果"
+    - "删除卡片时级联删除关联的复习日志"
+    - "删除用户时级联删除其所有复习日志"
+    - "统计接口通过聚合 review_logs 表计算连续打卡天数和累计复习次数"
+    - "rating 取值范围 1-4（1=Again, 2=Hard, 3=Good, 4=Easy）"
+  permissions:
+    - "用户只能查看自己的复习日志（通过统计接口聚合）"
+    - "不提供单条日志的修改和删除接口"
+  lifecycle:
+    - "用户复习卡片并提交评分"
+    - "系统创建一条不可变的复习日志"
+    - "统计接口按需聚合日志数据"
+    - "删除卡片或用户时级联删除日志"
+
+fields:
+  - name: id
+    type: string
+    label: 日志ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: rating
+    type: int
+    label: 评分
+    required: true
+    form_type: number
+    listable: false
+    editable: false
+  - name: stability_before
+    type: float
+    label: 复习前稳定性
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: stability_after
+    type: float
+    label: 复习后稳定性
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: difficulty_before
+    type: float
+    label: 复习前难度
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: difficulty_after
+    type: float
+    label: 复习后难度
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: elapsed_ms
+    type: int
+    label: 答题耗时(ms)
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: reviewed_at
+    type: time
+    label: 复习时间
+    required: true
+    form_type: date
+    listable: false
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now_add: true
+
+relations:
+  - name: card
+    label: 记录
+    type: belongs_to
+    target: content/Card
+    back_ref: review_logs
+  - name: user
+    label: 归属
+    type: belongs_to
+    target: user/User
+    back_ref: review_logs
+
+admin:
+  list_columns: [card_id, user_id, rating, reviewed_at]
+  default_sort: reviewed_at
+  default_order: desc
+  page_size: 20

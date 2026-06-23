@@ -99,7 +99,7 @@ const ERDiagram: React.FC<ERDiagramProps> = ({ dsl, loading, direction = 'LR', z
           height: '100%',
         }}
       >
-        <Spin tip="正在加载 ER 图..." />
+        <Spin description="正在加载 ER 图..." />
       </div>
     )
   }

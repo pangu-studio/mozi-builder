@@ -68,6 +68,15 @@ type ModelSummary struct {
 	SyncStatus  string `json:"sync_status"` // "synced", "modified", "new"
 }
 
+// ModelVersionInfo describes one saved model version for history views.
+type ModelVersionInfo struct {
+	Version       string `json:"version"`
+	ChangeSummary string `json:"change_summary"`
+	CreatedBy     string `json:"created_by"`
+	CreatedAt     string `json:"created_at"`
+	Current       bool   `json:"current"`
+}
+
 // ModuleSummary is a lightweight module representation.
 type ModuleSummary struct {
 	Name        string         `json:"name"`
@@ -191,6 +200,29 @@ func (s *Service) DeleteModule(ctx context.Context, name string) error {
 // GetModel returns a single model with full details.
 func (s *Service) GetModel(ctx context.Context, modelName string) (*mozi.ModelIR, error) {
 	return s.Store.LoadModel(modelName)
+}
+
+// ListModelHistory returns saved versions for a model, newest first.
+func (s *Service) ListModelHistory(ctx context.Context, modelName string) ([]ModelVersionInfo, error) {
+	_, _, _, _, _, currentVersion, err := s.Store.GetModel(modelName)
+	if err != nil {
+		return nil, fmt.Errorf("get model: %w", err)
+	}
+	versions, err := s.Store.ListVersions(modelName)
+	if err != nil {
+		return nil, fmt.Errorf("list versions: %w", err)
+	}
+	result := make([]ModelVersionInfo, 0, len(versions))
+	for _, v := range versions {
+		result = append(result, ModelVersionInfo{
+			Version:       v.Version,
+			ChangeSummary: v.ChangeSummary,
+			CreatedBy:     v.CreatedBy,
+			CreatedAt:     v.CreatedAt,
+			Current:       v.Version == currentVersion,
+		})
+	}
+	return result, nil
 }
 
 // CreateModel creates a new model from YAML content.
@@ -425,6 +457,8 @@ type ChangePlanResult struct {
 	ModelRef      string                `json:"model_ref"`
 	Status        ChangePlanStatus      `json:"status"`
 	Intent        string                `json:"intent"`
+	ModuleIcon    string                `json:"module_icon,omitempty"`
+	ModelIcon     string                `json:"model_icon,omitempty"`
 	Semantics     mozi.SemanticConfig   `json:"semantics"`
 	UIIntent      mozi.UIIntentConfig   `json:"ui_intent"`
 	APIIntent     mozi.APIIntentConfig  `json:"api_intent"`
@@ -470,11 +504,17 @@ func (s *Service) ChangePlan(ctx context.Context, modelName string) (*ChangePlan
 	}
 
 	modelRef := model.Module + "/" + model.Name
+	moduleIcon := ""
+	if mod, err := s.Store.GetModule(model.Module); err == nil && mod != nil {
+		moduleIcon = strings.TrimSpace(mod.Icon)
+	}
 	affectedFiles := diff.AffectedFiles()
 	result := &ChangePlanResult{
 		ModelRef:      modelRef,
 		Status:        status,
 		Intent:        buildChangeIntent(diff, status),
+		ModuleIcon:    moduleIcon,
+		ModelIcon:     strings.TrimSpace(model.Display.Icon),
 		Semantics:     model.Semantics,
 		UIIntent:      model.UIIntent,
 		APIIntent:     model.APIIntent,
@@ -775,6 +815,13 @@ func buildChangeTasks(model *mozi.ModelIR, diff *differ.DiffResult, affectedFile
 			Description: "Apply list/search/sort/page-size behavior without rewriting unrelated page logic.",
 		})
 	}
+	if hasPlanCategory(diff, "meta") || hasPlanCategory(diff, "ui_intent") || model.Display.Icon != "" {
+		tasks = append(tasks, ChangePlanTask{
+			Area:        "navigation",
+			Description: fmt.Sprintf("When creating or updating menus, routes, breadcrumbs, cards, or other model entry points, use the model icon %q and the module icon configured in the design DB.", model.Display.Icon),
+			Files:       filesWithPrefix(affectedFiles, "admin/src/", "../memflow-desktop/src/", "../memflow-miniapp/src/"),
+		})
+	}
 	if hasPlanCategory(diff, "semantics") {
 		tasks = append(tasks, ChangePlanTask{
 			Area:        "semantics",
@@ -854,6 +901,7 @@ func buildChangePrompt(plan *ChangePlanResult) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Change plan for %s [status: %s]\n\n", plan.ModelRef, plan.Status)
 	fmt.Fprintf(&b, "Intent: %s\n\n", plan.Intent)
+	writeIconPromptSection(&b, plan)
 	writeSemanticPromptSection(&b, plan)
 	if plan.Diff != nil && len(plan.Diff.Changes) > 0 {
 		b.WriteString("Model changes:\n")
@@ -882,6 +930,20 @@ func buildChangePrompt(plan *ChangePlanResult) string {
 		fmt.Fprintf(&b, "- %s\n", check)
 	}
 	return b.String()
+}
+
+func writeIconPromptSection(b *strings.Builder, plan *ChangePlanResult) {
+	if plan.ModuleIcon == "" && plan.ModelIcon == "" {
+		return
+	}
+	b.WriteString("Icon contract:\n")
+	if plan.ModuleIcon != "" {
+		fmt.Fprintf(b, "- Module icon: %s\n", plan.ModuleIcon)
+	}
+	if plan.ModelIcon != "" {
+		fmt.Fprintf(b, "- Model icon: %s\n", plan.ModelIcon)
+	}
+	b.WriteString("- Use these icon names when generating or updating menus, navigation entries, dashboards, cards, and other model-specific UI entry points.\n\n")
 }
 
 func writeSemanticPromptSection(b *strings.Builder, plan *ChangePlanResult) {

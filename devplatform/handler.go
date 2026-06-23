@@ -97,6 +97,17 @@ func (h *Handler) GetModel(c *gin.Context) {
 	c.JSON(http.StatusOK, model)
 }
 
+// GetModelHistory returns saved model versions.
+func (h *Handler) GetModelHistory(c *gin.Context) {
+	name := c.Param("name")
+	versions, err := h.svc.ListModelHistory(c.Request.Context(), name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, versions)
+}
+
 // CreateModel creates a new model from YAML.
 func (h *Handler) CreateModel(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)

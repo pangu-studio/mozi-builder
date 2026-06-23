@@ -1,0 +1,33 @@
+[[/* model structs: internal/model/{module}/{model}.go */]]
+package [[.ModuleName]]
+
+[[- if .HasTimeFields ]]
+import "time"
+[[- end ]]
+
+// Admin[[.Name]]Item represents a single [[.Model.Label]] in the admin list.
+type Admin[[.Name]]Item struct {
+[[- range .ListFields ]]
+	[[snakeToPascal .Name]] [[GoTypeForField .]] `json:"[[.Name]]"`
+[[- end ]]
+}
+
+// Admin[[.Name]]ListResp is the response for the admin [[.Name]] list endpoint.
+type Admin[[.Name]]ListResp struct {
+	[[snakeToPascal .NamePlural]] []Admin[[.Name]]Item `json:"[[.NamePlural]]"`
+	Total int `json:"total"`
+}
+
+// Admin[[.Name]]CreateReq is the request body for creating a [[.Model.Label]].
+type Admin[[.Name]]CreateReq struct {
+[[- range .EditableFields ]]
+	[[snakeToPascal .Name]] [[GoTypeForField .]] `json:"[[.Name]]"[[if .Required]] binding:"required"[[end]]`
+[[- end ]]
+}
+
+// Admin[[.Name]]UpdateReq is the request body for updating a [[.Model.Label]].
+type Admin[[.Name]]UpdateReq struct {
+[[- range .EditableFields ]]
+	[[snakeToPascal .Name]] *[[GoTypeForField .]] `json:"[[.Name]]"`
+[[- end ]]
+}

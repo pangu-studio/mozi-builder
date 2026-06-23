@@ -1,0 +1,104 @@
+# Group — 分组
+# 按层级组织牌组，支持嵌套子分组形成树形结构
+module: content
+model: Group
+label: 分组
+description: 按层级组织牌组，支持嵌套子分组形成树形结构
+table: groups
+
+semantics:
+  purpose: "按层级组织牌组，支持嵌套子分组形成树形结构。用户可将牌组放入分组中，通过树形结构浏览和管理。桌面端侧边栏通过右键上下文菜单提供所有管理入口（无可见按钮）。"
+  audience:
+    - "桌面端用户"
+    - "小程序用户"
+  user_value: "帮助用户通过层级分类管理大量牌组，提升浏览和查找效率。桌面端用户可在侧边栏直接管理分组层级。"
+  business_rules:
+    - "父分组必须属于同一用户，防止跨用户挂载"
+    - "删除分组时级联删除所有子分组"
+    - "删除分组时，其下牌组不解绑（group_id 置为 null），不删除牌组"
+    - "分组不直接关联卡片，只组织牌组"
+    - "不允许循环引用：不能将父分组设为自己的子孙节点"
+  permissions:
+    - "用户只能操作自己的分组"
+  lifecycle:
+    - "首次使用时侧边栏无任何分组，用户在空白区域右键选择「新建分组」创建第一个根分组"
+    - "用户创建分组后可选择父分组以建立层级"
+    - "用户在分组上右键选择「新建子分组」创建子分组"
+    - "用户在分组上右键选择「新建卡牌组」创建牌组，卡牌组自动关联到该分组"
+    - "用户将牌组拖入分组"
+    - "用户通过右键菜单「重命名」编辑分组名称"
+    - "用户调整分组排序"
+    - "用户通过右键菜单「删除」删除分组（级联删除子分组，牌组回归未分类）"
+
+fields:
+  - name: id
+    type: string
+    label: 分组ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: name
+    type: string
+    label: 名称
+    required: true
+    searchable: true
+    listable: false
+    editable: false
+  - name: description
+    type: string
+    label: 描述
+    form_type: textarea
+    listable: false
+    editable: false
+  - name: sort_order
+    type: int
+    label: 排序
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now_add: true
+  - name: updated_at
+    type: time
+    label: 更新时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now: true
+
+relations:
+  - name: user
+    label: 归属
+    type: belongs_to
+    target: user/User
+    back_ref: groups
+  - name: parent
+    label: 隶属于
+    type: belongs_to
+    target: content/Group
+    back_ref: children
+  - name: children
+    label: 包含
+    type: has_many
+    target: content/Group
+    back_ref: parent
+    cascade: true
+  - name: decks
+    label: 归集
+    type: has_many
+    target: content/Deck
+    back_ref: group
+
+admin:
+  list_columns: [name, parent_id, created_at]
+  search_fields: [name]
+  default_sort: created_at
+  default_order: desc
+  page_size: 20

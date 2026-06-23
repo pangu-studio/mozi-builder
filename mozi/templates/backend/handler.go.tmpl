@@ -1,0 +1,96 @@
+[[/* handler: internal/handler/{module}/{model}.go */]]
+package [[.ModuleName]]
+
+import (
+	"net/http"
+	"strconv"
+
+	service "[[.ModulePath]]/internal/service/[[.ModuleName]]"
+
+	"github.com/gin-gonic/gin"
+)
+
+// [[.Name]]Handler handles admin CRUD operations for [[.Model.Label]].
+type [[.Name]]Handler struct {
+	svc *service.[[.Name]]Service
+}
+
+// New[[.Name]]Handler creates a new [[.Name]]Handler.
+func New[[.Name]]Handler(svc *service.[[.Name]]Service) *[[.Name]]Handler {
+	return &[[.Name]]Handler{svc: svc}
+}
+
+// mozi:section List[[.Name]] — [[.Model.Label]]列表查询（由 mozi 管理）
+func (h *[[.Name]]Handler) List(c *gin.Context) {
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "[[.Admin.PageSize]]"))
+	[[- if .SearchFields ]]
+	keyword := c.DefaultQuery("keyword", "")
+	[[- end ]]
+
+	result, err := h.svc.List(c.Request.Context(), page, pageSize[[if .SearchFields]], keyword[[end]])
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+// mozi:end List[[.Name]]
+
+// mozi:section Get[[.Name]] — [[.Model.Label]]详情（由 mozi 管理）
+func (h *[[.Name]]Handler) Get(c *gin.Context) {
+	id := c.Param("id")
+	result, err := h.svc.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+// mozi:end Get[[.Name]]
+
+// mozi:section Create[[.Name]] — 创建[[.Model.Label]]（由 mozi 管理）
+func (h *[[.Name]]Handler) Create(c *gin.Context) {
+	var req Admin[[.Name]]CreateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.svc.Create(c.Request.Context(), &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+// mozi:end Create[[.Name]]
+
+// mozi:section Update[[.Name]] — 更新[[.Model.Label]]（由 mozi 管理）
+func (h *[[.Name]]Handler) Update(c *gin.Context) {
+	id := c.Param("id")
+	var req Admin[[.Name]]UpdateReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.svc.Update(c.Request.Context(), id, &req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, result)
+}
+// mozi:end Update[[.Name]]
+
+// mozi:section Delete[[.Name]] — 删除[[.Model.Label]]（由 mozi 管理）
+func (h *[[.Name]]Handler) Delete(c *gin.Context) {
+	id := c.Param("id")
+	if err := h.svc.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
+}
+// mozi:end Delete[[.Name]]

@@ -1,0 +1,105 @@
+# Card — 卡片
+# 闪卡，包含正面（问题）和反面（答案）内容，支持问答和填空两种类型
+module: content
+model: Card
+label: 卡片
+description: 闪卡，包含正面（问题）和反面（答案）内容，支持问答和填空两种类型
+table: cards
+
+semantics:
+  purpose: "存储闪卡内容，是间隔重复记忆复习的核心数据载体。每张卡片属于一个牌组，用户通过复习卡片来巩固记忆。"
+  audience:
+    - "小程序用户"
+    - "桌面端用户"
+  user_value: "让用户在碎片化时间中通过间隔重复方法高效记忆知识"
+  business_rules:
+    - "卡片必须属于某个牌组（deck_id 不可为空）"
+    - "创建卡片时自动初始化对应的 CardState 复习状态"
+    - "删除卡片时关联的 CardState 应级联删除"
+    - "卡片类型（qa/cloze）影响前端渲染和复习交互方式"
+    - "删除卡片时级联删除关联的复习日志（ReviewLog）"
+  permissions:
+    - "用户只能操作自己的卡片"
+  lifecycle:
+    - "用户创建卡片"
+    - "卡片在 FSRS 调度下反复复习"
+    - "用户可更新卡片内容"
+    - "用户可删除卡片"
+    - "复习日志在每次评分时创建并关联卡片"
+
+fields:
+  - name: id
+    type: string
+    label: 卡片ID
+    primary: true
+    generated: uuid
+    listable: false
+    editable: false
+  - name: card_type
+    type: enum
+    label: 卡片类型
+    default: "qa"
+    enum_values: [qa, cloze]
+    form_type: select
+    listable: false
+    editable: false
+  - name: front
+    type: string
+    label: 正面内容
+    required: true
+    form_type: textarea
+    listable: false
+    editable: false
+  - name: back
+    type: string
+    label: 反面内容
+    required: true
+    form_type: textarea
+    listable: false
+    editable: false
+  - name: sort_order
+    type: int
+    label: 排序
+    default: "0"
+    form_type: number
+    listable: false
+    editable: false
+  - name: created_at
+    type: time
+    label: 创建时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now_add: true
+  - name: updated_at
+    type: time
+    label: 更新时间
+    form_type: date
+    listable: false
+    editable: false
+    auto_now: true
+
+relations:
+  - name: deck
+    label: 归属
+    type: belongs_to
+    target: content/Deck
+    back_ref: cards
+  - name: state
+    label: 跟踪
+    type: has_one
+    target: content/CardState
+    back_ref: card
+  - name: review_logs
+    label: 产生
+    type: has_many
+    target: content/ReviewLog
+    back_ref: card
+    cascade: true
+
+admin:
+  list_columns: [front, back, card_type, created_at]
+  search_fields: [front, back]
+  default_sort: created_at
+  default_order: desc
+  page_size: 20
