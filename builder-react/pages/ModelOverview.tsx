@@ -9,6 +9,7 @@ import {
   message,
   Popconfirm,
   Card,
+  Collapse,
   Tooltip,
   Modal,
   Form,
@@ -34,7 +35,7 @@ import { useNavigate } from 'react-router-dom'
 import type { ColumnsType } from 'antd/es/table'
 import { useDevPlatformStore } from '../stores/dev-platform'
 import { getModel, getModelHistory } from '../api/dev-platform'
-import type { FieldIR, ModelIR, ModelSummary, ModelVersionInfo, ModuleSummary, RelationIR } from '../api/dev-platform'
+import type { FieldIR, ModelIR, ModelSummary, ModelVersionInfo, ModuleSummary, RelationIR, UIIntentConfig, UISurfaceIntentConfig, UISurfaceViewConfig } from '../api/dev-platform'
 import { ChangeCountBadges, ChangeList } from '../diffShared'
 import { useMoziBuilder } from '..'
 import IconSelect from '../components/IconSelect'
@@ -76,6 +77,214 @@ const renderTagList = (values?: string[]) => {
     </Space>
   ) : (
     <Text type="secondary">-</Text>
+  )
+}
+
+// === UI Intent surface labels (mirrors ModelDesigner.tsx Collapse labels) ===
+const SURFACE_LABELS: Record<string, string> = {
+  admin: '管理后台',
+  desktop: '桌面客户端',
+  miniapp: '小程序',
+}
+
+const DENSITY_LABELS: Record<string, string> = {
+  high: '高密度',
+  medium: '中密度',
+  low: '低密度',
+}
+
+// === UI Intent rendering helpers ===
+
+const hasUIIntent = (ui?: UIIntentConfig): boolean => {
+  if (!ui) return false
+  if (ui.product_goal?.trim()) return true
+  if ((ui.user_tasks || []).some(t => t.key || t.label || t.priority)) return true
+  const s = ui.shared
+  if (s) {
+    if ((s.primary_entities || []).length) return true
+    if ((s.primary_actions || []).length) return true
+    if (s.empty_state?.trim()) return true
+    if (Object.keys(s.terminology || {}).length) return true
+  }
+  if (ui.surfaces_config && Object.keys(ui.surfaces_config).length) return true
+  // legacy fields
+  if ((ui.surfaces || []).length) return true
+  if (ui.primary_view?.trim()) return true
+  if (ui.primary_actions?.length) return true
+  if (ui.list_intent?.trim()) return true
+  if (ui.form_intent?.trim()) return true
+  if (ui.detail_intent?.trim()) return true
+  if (ui.empty_state?.trim()) return true
+  if ((ui.interaction_notes || []).length) return true
+  if ((ui.surface_notes || []).length) return true
+  return false
+}
+
+const renderDensity = (v?: string) => {
+  if (!v) return <Text type="secondary">-</Text>
+  return <Tag>{DENSITY_LABELS[v] || v}</Tag>
+}
+
+const renderTerminology = (term?: Record<string, string>) => {
+  const entries = Object.entries(term || {}).filter(([, v]) => v)
+  if (!entries.length) return <Text type="secondary">-</Text>
+  return (
+    <Space direction="vertical" size={2}>
+      {entries.map(([k, v]) => (
+        <span key={k}>
+          <Text code>{k}</Text>: {v}
+        </span>
+      ))}
+    </Space>
+  )
+}
+
+const renderSurfaceView = (name: string, view?: UISurfaceViewConfig) => {
+  if (!view || (!view.intent?.trim() && !view.density && !(view.fields || []).length)) return null
+  const label = name === 'list' ? '列表视图' : name === 'detail' ? '详情视图' : name === 'form' ? '表单视图' : name + '视图'
+  return (
+    <Descriptions
+      key={name}
+      bordered
+      size="small"
+      column={1}
+      title={label}
+      items={[
+        { label: '视图意图', children: view.intent?.trim() || <Text type="secondary">-</Text> },
+        { label: '密度', children: renderDensity(view.density) },
+        { label: '字段', children: renderTagList(view.fields) },
+      ]}
+    />
+  )
+}
+
+const renderSurfacePanel = (surface: string, cfg: UISurfaceIntentConfig) => {
+  const hasContent = cfg.role?.trim() ||
+    (cfg.enabled_tasks || []).length ||
+    (cfg.actions || []).length ||
+    (cfg.constraints || []).length ||
+    Object.values(cfg.views || {}).some(v => v.intent?.trim() || v.density || (v.fields || []).length)
+  if (!hasContent) return <Text type="secondary">暂无配置</Text>
+
+  const views = cfg.views || {}
+  const orderedViewKeys = ['list', 'detail', 'form']
+  const extraViewKeys = Object.keys(views).filter(k => !orderedViewKeys.includes(k))
+
+  return (
+    <Space direction="vertical" size={12} style={{ width: '100%' }}>
+      <Descriptions
+        bordered
+        size="small"
+        column={1}
+        items={[
+          { label: '端侧角色', children: cfg.role?.trim() || <Text type="secondary">-</Text> },
+          { label: '启用任务', children: renderTagList(cfg.enabled_tasks) },
+          { label: '端侧动作', children: renderTagList(cfg.actions) },
+          { label: '端侧约束', children: renderTextList(cfg.constraints) },
+        ]}
+      />
+      {orderedViewKeys.map(k => {
+        const v = views[k]
+        return v ? renderSurfaceView(k, v) : null
+      })}
+      {extraViewKeys.map(k => {
+        const v = views[k]
+        return v ? renderSurfaceView(k, v) : null
+      })}
+    </Space>
+  )
+}
+
+const renderUIIntent = (ui: UIIntentConfig) => {
+  const surfacesConfig = ui.surfaces_config || {}
+  const surfaceKeys = Object.keys(surfacesConfig)
+  const ordered = ['admin', 'desktop', 'miniapp'].filter(k => surfaceKeys.includes(k))
+  const extra = surfaceKeys.filter(k => !ordered.includes(k))
+  const orderedKeys = [...ordered, ...extra]
+
+  const taskColumns: ColumnsType<{ key?: string; label?: string; priority?: string }> = [
+    { title: '标识', dataIndex: 'key', key: 'key', width: 140, render: (v?: string) => v ? <Text code>{v}</Text> : <Text type="secondary">-</Text> },
+    { title: '名称', dataIndex: 'label', key: 'label', width: 140, render: (v?: string) => v || <Text type="secondary">-</Text> },
+    { title: '优先级', dataIndex: 'priority', key: 'priority', width: 100, render: (v?: string) => v ? <Tag>{v}</Tag> : <Text type="secondary">-</Text> },
+  ]
+
+  const hasTasks = (ui.user_tasks || []).some(t => t.key || t.label || t.priority)
+  const shared = ui.shared
+
+  const hasLegacy = !surfaceKeys.length && (
+    ui.list_intent?.trim() || ui.form_intent?.trim() || ui.detail_intent?.trim() ||
+    ui.empty_state?.trim() || (ui.interaction_notes || []).length || (ui.surface_notes || []).length
+  )
+
+  const items: Array<{ label: string; children: React.ReactNode }> = [
+    { label: '产品目标', children: ui.product_goal?.trim() || <Text type="secondary">-</Text> },
+  ]
+
+  if (hasTasks) {
+    items.push({
+      label: '跨端用户任务',
+      children: (
+        <Table
+          columns={taskColumns}
+          dataSource={ui.user_tasks || []}
+          rowKey={(_, i) => String(i)}
+          size="small"
+          pagination={false}
+        />
+      ),
+    })
+  }
+
+  if (shared) {
+    items.push(
+      { label: '共用实体', children: renderTagList(shared.primary_entities) },
+      { label: '共用动作', children: renderTagList(shared.primary_actions) },
+      { label: '共用空状态', children: shared.empty_state?.trim() || <Text type="secondary">-</Text> },
+      { label: '统一术语', children: renderTerminology(shared.terminology) },
+    )
+  } else if (ui.empty_state?.trim()) {
+    items.push({ label: '空状态', children: ui.empty_state })
+  }
+
+  return (
+    <>
+      <Descriptions
+        bordered
+        size="small"
+        column={1}
+        title="UI 意图"
+        items={items}
+      />
+
+      {orderedKeys.length > 0 && (
+        <Card size="small" title="端侧配置">
+          <Collapse
+            items={orderedKeys.map(surface => ({
+              key: surface,
+              label: `${SURFACE_LABELS[surface] || surface}${surfacesConfig[surface]?.role?.trim() ? ` · ${surfacesConfig[surface].role}` : ''}`,
+              children: renderSurfacePanel(surface, surfacesConfig[surface] || {}),
+            }))}
+          />
+        </Card>
+      )}
+
+      {hasLegacy && (
+        <Descriptions
+          bordered
+          size="small"
+          column={1}
+          title="其他（旧配置）"
+          items={[
+            { label: '列表视图意图', children: ui.list_intent?.trim() || <Text type="secondary">-</Text> },
+            { label: '表单视图意图', children: ui.form_intent?.trim() || <Text type="secondary">-</Text> },
+            { label: '详情视图意图', children: ui.detail_intent?.trim() || <Text type="secondary">-</Text> },
+            { label: '空状态', children: ui.empty_state?.trim() || <Text type="secondary">-</Text> },
+            { label: '交互说明', children: renderTextList(ui.interaction_notes) },
+            { label: '端侧说明', children: renderTextList(ui.surface_notes) },
+          ]}
+        />
+      )}
+    </>
   )
 }
 
@@ -697,6 +906,8 @@ const ModelDetailDrawer: React.FC<ModelDetailDrawerProps> = ({ open, loading, mo
               { label: '生命周期', children: renderTextList(model.semantics?.lifecycle) },
             ]}
           />
+
+          {model.ui_intent && hasUIIntent(model.ui_intent) && renderUIIntent(model.ui_intent)}
 
           <Descriptions
             bordered
