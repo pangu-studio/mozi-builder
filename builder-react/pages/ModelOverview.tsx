@@ -38,6 +38,7 @@ import { getModel, getModelHistory } from '../api/dev-platform'
 import type { FieldIR, ModelIR, ModelSummary, ModelVersionInfo, ModuleSummary, RelationIR, UIIntentConfig, UISurfaceIntentConfig, UISurfaceViewConfig } from '../api/dev-platform'
 import { ChangeCountBadges, ChangeList } from '../diffShared'
 import { useMoziBuilder } from '..'
+import { useUiSurfaces } from '../hooks/useUiSurfaces'
 import IconSelect from '../components/IconSelect'
 
 const { Title, Text } = Typography
@@ -81,12 +82,6 @@ const renderTagList = (values?: string[]) => {
 }
 
 // === UI Intent surface labels (mirrors ModelDesigner.tsx Collapse labels) ===
-const SURFACE_LABELS: Record<string, string> = {
-  admin: '管理后台',
-  desktop: '桌面客户端',
-  miniapp: '小程序',
-}
-
 const DENSITY_LABELS: Record<string, string> = {
   high: '高密度',
   medium: '中密度',
@@ -195,12 +190,12 @@ const renderSurfacePanel = (surface: string, cfg: UISurfaceIntentConfig) => {
   )
 }
 
-const renderUIIntent = (ui: UIIntentConfig) => {
+const renderUIIntent = (ui: UIIntentConfig, labelOf?: (v: string) => string, knownSurfaces?: string[]) => {
   const surfacesConfig = ui.surfaces_config || {}
   const surfaceKeys = Object.keys(surfacesConfig)
-  const ordered = ['admin', 'desktop', 'miniapp'].filter(k => surfaceKeys.includes(k))
-  const extra = surfaceKeys.filter(k => !ordered.includes(k))
-  const orderedKeys = [...ordered, ...extra]
+  const known = (knownSurfaces || []).filter(k => surfaceKeys.includes(k))
+  const extra = surfaceKeys.filter(k => !known.includes(k))
+  const orderedKeys = [...known, ...extra]
 
   const taskColumns: ColumnsType<{ key?: string; label?: string; priority?: string }> = [
     { title: '标识', dataIndex: 'key', key: 'key', width: 140, render: (v?: string) => v ? <Text code>{v}</Text> : <Text type="secondary">-</Text> },
@@ -261,7 +256,7 @@ const renderUIIntent = (ui: UIIntentConfig) => {
           <Collapse
             items={orderedKeys.map(surface => ({
               key: surface,
-              label: `${SURFACE_LABELS[surface] || surface}${surfacesConfig[surface]?.role?.trim() ? ` · ${surfacesConfig[surface].role}` : ''}`,
+              label: `${(labelOf ? labelOf(surface) : surface) || surface}${surfacesConfig[surface]?.role?.trim() ? ` · ${surfacesConfig[surface].role}` : ''}`,
               children: renderSurfacePanel(surface, surfacesConfig[surface] || {}),
             }))}
           />
@@ -291,6 +286,8 @@ const renderUIIntent = (ui: UIIntentConfig) => {
 const ModelOverview: React.FC = () => {
   const navigate = useNavigate()
   const { buildRoute } = useMoziBuilder()
+  const { surfaces, labelOf } = useUiSurfaces()
+  const knownSurfaceKeys = surfaces.map((s) => s.value)
   const {
     modules,
     loading,
@@ -810,6 +807,8 @@ const ModelOverview: React.FC = () => {
         model={detailModel}
         onClose={() => setDetailOpen(false)}
         onEdit={(model) => navigate(buildRoute(`/modules/${model.module}/models/${model.name}`))}
+        labelOf={labelOf}
+        knownSurfaceKeys={knownSurfaceKeys}
       />
 
       <ModelHistoryModal
@@ -829,9 +828,11 @@ interface ModelDetailDrawerProps {
   model: ModelIR | null
   onClose: () => void
   onEdit: (model: ModelIR) => void
+  labelOf?: (v: string) => string
+  knownSurfaceKeys?: string[]
 }
 
-const ModelDetailDrawer: React.FC<ModelDetailDrawerProps> = ({ open, loading, model, onClose, onEdit }) => {
+const ModelDetailDrawer: React.FC<ModelDetailDrawerProps> = ({ open, loading, model, onClose, onEdit, labelOf, knownSurfaceKeys }) => {
   const fieldColumns: ColumnsType<FieldIR> = [
     { title: '字段', dataIndex: 'name', key: 'name', width: 140, render: (v: string) => <Text code>{v}</Text> },
     { title: '标签', dataIndex: 'label', key: 'label', width: 120 },
@@ -907,7 +908,7 @@ const ModelDetailDrawer: React.FC<ModelDetailDrawerProps> = ({ open, loading, mo
             ]}
           />
 
-          {model.ui_intent && hasUIIntent(model.ui_intent) && renderUIIntent(model.ui_intent)}
+          {model.ui_intent && hasUIIntent(model.ui_intent) && renderUIIntent(model.ui_intent, labelOf, knownSurfaceKeys)}
 
           <Descriptions
             bordered

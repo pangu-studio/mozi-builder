@@ -908,8 +908,8 @@ func buildChangeTasks(model *mozi.ModelIR, diff *differ.DiffResult, affectedFile
 	if hasPlanCategory(diff, "ui_intent") {
 		tasks = append(tasks, ChangePlanTask{
 			Area:        "ui-intent",
-			Description: "Update admin, desktop, and mini program UI surfaces as applicable, including list, form, detail, empty state, primary actions, navigation, and surface-specific behavior.",
-			Files:       filesWithPrefix(affectedFiles, "admin/src/", "../memflow-desktop/src/", "../memflow-miniapp/src/"),
+			Description: "Update all configured UI surfaces as applicable (admin, desktop, miniapp, cli, and any custom surfaces registered in the ui_surfaces dictionary), including list, form, detail, empty state, primary actions, navigation, and surface-specific behavior.",
+			Files:       filesWithPrefix(affectedFiles, "admin/src/", "../memflow-desktop/", "../memflow-miniapp/src/"),
 		})
 	}
 	if hasPlanCategory(diff, "api_intent") {

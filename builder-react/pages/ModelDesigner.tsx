@@ -35,6 +35,7 @@ import ModelYamlPreview from '../components/ModelYamlPreview'
 import IconSelect from '../components/IconSelect'
 import { useDevPlatformStore } from '../stores/dev-platform'
 import { useMoziBuilder } from '..'
+import { useUiSurfaces } from '../hooks/useUiSurfaces'
 import {
   API_AUTH_OPTIONS,
   API_EXPOSURE_OPTIONS,
@@ -128,6 +129,7 @@ const ModelDesigner: React.FC = () => {
   const [apiConsumerItems, setAPIConsumerItems] = useState<DesignDictionaryItem[]>([])
   const [apiConsumerLoading, setAPIConsumerLoading] = useState(false)
   const [apiConsumerManagerOpen, setAPIConsumerManagerOpen] = useState(false)
+  const { surfaces, labelOf } = useUiSurfaces()
 
   useEffect(() => {
     loadModules()
@@ -964,11 +966,11 @@ const ModelDesigner: React.FC = () => {
                   </div>
                   <div style={{ flex: '1 1 100%', minWidth: 280 }}>
                     <Collapse
-                      items={[
-                        { key: 'admin', label: '管理后台', children: renderSurfaceIntent('admin', '高密度管理、运营检索、批量操作') },
-                        { key: 'desktop', label: '桌面客户端', children: renderSurfaceIntent('desktop', '离线、本地数据、快捷键、复习入口') },
-                        { key: 'miniapp', label: '小程序', children: renderSurfaceIntent('miniapp', '轻量路径、单手操作、弱网和移动端限制') },
-                      ]}
+                      items={surfaces.map((s) => ({
+                        key: s.value,
+                        label: s.label || s.value,
+                        children: renderSurfaceIntent(s.value, s.description || ''),
+                      }))}
                     />
                   </div>
                 </div>

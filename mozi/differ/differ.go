@@ -563,26 +563,27 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 		})
 		if hasUIIntentChanges {
 			uiChangeCount := countByCategory(d.Changes, "ui_intent")
-			if uiAffectsSurface(d.Changes, "admin") {
-				files = append(files, AffectedFile{
-					Path:        fmt.Sprintf("admin/src/pages/%s/%sList.tsx", moduleName, modelName),
-					Description: "Admin UI may need to follow the updated product intent",
-					ChangeCount: uiChangeCount,
-				})
+
+			// Collect which surfaces are mentioned in this diff.
+			surfaceSet := make(map[string]bool)
+			for _, change := range d.Changes {
+				if change.Category == "ui_intent" && strings.HasPrefix(change.Name, "surfaces.") {
+					surfaceSet[strings.TrimPrefix(change.Name, "surfaces.")] = true
+				}
 			}
-			if uiAffectsSurface(d.Changes, "desktop") {
-				files = append(files, AffectedFile{
-					Path:        "../memflow-desktop/src/pages/",
-					Description: "Desktop client UI may need to follow the updated product intent",
-					ChangeCount: uiChangeCount,
-				})
+
+			// Shared / legacy changes affect all known surfaces.
+			globalUI := hasUIIntentChanges && len(surfaceSet) == 0
+			for _, surface := range knownUISurfaces() {
+				if globalUI || surfaceSet[surface] {
+					files = append(files, surfaceAffectedFiles(surface, uiChangeCount, moduleName, modelSnake)...)
+				}
+				delete(surfaceSet, surface)
 			}
-			if uiAffectsSurface(d.Changes, "miniapp") {
-				files = append(files, AffectedFile{
-					Path:        "../memflow-miniapp/src/pages/",
-					Description: "Mini program UI may need to follow the updated product intent",
-					ChangeCount: uiChangeCount,
-				})
+
+			// Any surface not in the known list still gets a generic entry.
+			for surface := range surfaceSet {
+				files = append(files, surfaceAffectedFiles(surface, uiChangeCount, moduleName, modelSnake)...)
 			}
 		}
 		if hasSemanticChanges {
@@ -804,10 +805,55 @@ func uiAffectsSurface(changes []FieldChange, surface string) bool {
 		if change.Name == "shared" || change.Name == "legacy" || change.Name == "ui_intent" || change.Name == "surfaces."+surface {
 			return true
 		}
+
 	}
 	return false
 }
 
+// knownUISurfaces returns the canonical list of UI surface identifiers.
+// New surfaces can be registered via the ui_surfaces design dictionary;
+// this list provides file-path mappings for surfaces that have known
+// artifact locations in the host repository.
+func knownUISurfaces() []string {
+	return []string{"admin", "desktop", "miniapp", "cli"}
+}
+
+// surfaceAffectedFiles returns the files in the host repository that are
+// affected when a models UI intent changes for a given surface.
+// Unknown surfaces get a generic placeholder entry.
+func surfaceAffectedFiles(surface string, uiChangeCount int, moduleName, modelSnake string) []AffectedFile {
+	switch surface {
+	case "admin":
+		return []AffectedFile{{
+			Path:        fmt.Sprintf("admin/src/pages/%s/%sList.tsx", moduleName, modelSnake),
+			Description: "Admin UI may need to follow the updated product intent",
+			ChangeCount: uiChangeCount,
+		}}
+	case "desktop":
+		return []AffectedFile{{
+			Path:        "../memflow-desktop/src/pages/",
+			Description: "Desktop client UI may need to follow the updated product intent",
+			ChangeCount: uiChangeCount,
+		}}
+	case "miniapp":
+		return []AffectedFile{{
+			Path:        "../memflow-miniapp/src/pages/",
+			Description: "Mini program UI may need to follow the updated product intent",
+			ChangeCount: uiChangeCount,
+		}}
+	case "cli":
+		return []AffectedFile{
+			{Path: "../memflow-desktop/src-tauri/src/", Description: "Desktop CLI (Rust) may need to follow the updated product intent", ChangeCount: uiChangeCount},
+			{Path: "../memflow-desktop/skills/", Description: "Desktop skill (AI agent) may need to follow the updated product intent", ChangeCount: uiChangeCount},
+		}
+	default:
+		return []AffectedFile{{
+			Path:        fmt.Sprintf("(surface %q: check relevant files)", surface),
+			Description: fmt.Sprintf("%s surface intent changed", surface),
+			ChangeCount: uiChangeCount,
+		}}
+	}
+}
 func apiIntentSummary(s mozi.APIIntentConfig) string {
 	var parts []string
 	if s.Exposure != "" {
