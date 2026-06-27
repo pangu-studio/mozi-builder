@@ -1,5 +1,8 @@
 ---
 name: mozi
+slug: mozi
+displayName: Mozi Model-Driven Development
+version: 0.1.0
 description: Model-driven development using the mozi CLI and embedded builder UI context. Use when Codex/Claude Code needs to create or modify business models/entities, validate model definitions, build AI Coding change plans, import/export YAML snapshots, inspect model diffs/history, manage design dictionaries, understand OpenAPI-derived API assets, or reason about endpoint-to-module associations maintained in the builder UI.
 ---
 
