@@ -59,7 +59,7 @@ func runImport(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("could not find project root: %w", err)
 	}
-	return importDirModels(store, filepath.Join(projectRoot, DefaultModelsDir))
+	return importDirModels(store, resolveModelsDir(projectRoot))
 }
 
 func importSingleFile(store *db.Store, path string) error {

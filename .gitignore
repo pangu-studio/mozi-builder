@@ -29,6 +29,7 @@ vendor/
 Thumbs.db
 
 # Build output
+bin/
 dist/
 
 # Environment

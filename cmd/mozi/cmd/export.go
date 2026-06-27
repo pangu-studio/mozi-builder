@@ -59,7 +59,7 @@ func runExport(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("could not find project root: %w", err)
 		}
-		outDir = filepath.Join(projectRoot, DefaultModelsDir)
+		outDir = resolveModelsDir(projectRoot)
 	}
 
 	// Filter modules if specified

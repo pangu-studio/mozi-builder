@@ -28,6 +28,22 @@ The init command:
 // DefaultModelsDir is the default directory for model YAML files.
 const DefaultModelsDir = "models"
 
+// modelsDirEnv is the environment variable that overrides the models directory path.
+const modelsDirEnv = "MOZI_MODELS_DIR"
+
+// resolveModelsDir returns the models directory path.
+// Checks MOZI_MODELS_DIR env var first; if set, joins it with projectRoot
+// (unless it's already an absolute path). Falls back to DefaultModelsDir.
+func resolveModelsDir(projectRoot string) string {
+	if dir := os.Getenv(modelsDirEnv); dir != "" {
+		if filepath.IsAbs(dir) {
+			return dir
+		}
+		return filepath.Join(projectRoot, dir)
+	}
+	return filepath.Join(projectRoot, DefaultModelsDir)
+}
+
 func runInit(cmd *cobra.Command, args []string) error {
 	projectRoot, err := findProjectRoot()
 	if err != nil {
@@ -49,7 +65,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	fmt.Printf("✓ Design database initialized: %s\n", designDB)
 
 	// 2. Create models directory if it doesn't exist
-	modelsDir := filepath.Join(projectRoot, DefaultModelsDir)
+	modelsDir := resolveModelsDir(projectRoot)
 	if err := os.MkdirAll(modelsDir, 0755); err != nil {
 		return fmt.Errorf("create models directory: %w", err)
 	}
