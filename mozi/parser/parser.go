@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 
 	"gopkg.in/yaml.v3"
 )

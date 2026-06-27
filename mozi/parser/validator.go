@@ -3,7 +3,7 @@ package parser
 import (
 	"fmt"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 // ValidationError represents a single validation issue.

@@ -11,7 +11,7 @@
 package main
 
 import (
-	"github.com/pangu-sutido/mozi-builder/cmd/mozi/cmd"
+	"github.com/pangu-studio/mozi-builder/cmd/mozi/cmd"
 )
 
 func main() {

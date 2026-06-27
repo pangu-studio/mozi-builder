@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
-	"github.com/pangu-sutido/mozi-builder/mozi/generator"
+	"github.com/pangu-studio/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi/generator"
 )
 
 // File represents one generated file in a plan.

@@ -3,7 +3,7 @@ package devplatform
 import (
 	"testing"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 func TestFilterProjectByModuleKeepsOnlyModuleModelsAndInternalRelations(t *testing.T) {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pangu-sutido/mozi-builder/devplatform"
-	"github.com/pangu-sutido/mozi-builder/mozi/db"
+	"github.com/pangu-studio/mozi-builder/devplatform"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
 
 	"github.com/spf13/cobra"
 )

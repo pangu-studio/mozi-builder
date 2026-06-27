@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
-	"github.com/pangu-sutido/mozi-builder/mozi/parser"
+	"github.com/pangu-studio/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi/parser"
 
 	"gopkg.in/yaml.v3"
 )

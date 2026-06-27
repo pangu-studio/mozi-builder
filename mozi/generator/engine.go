@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 // Engine executes code generation templates against model IRs.

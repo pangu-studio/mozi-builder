@@ -1,4 +1,4 @@
-module github.com/pangu-sutido/mozi-builder
+module github.com/pangu-studio/mozi-builder
 
 go 1.26.4
 

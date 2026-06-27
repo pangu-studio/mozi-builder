@@ -3,7 +3,7 @@ package differ
 import (
 	"testing"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 // TestSummaryMixedChanges verifies Summary() aggregates added/removed/modified

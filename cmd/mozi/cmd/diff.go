@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pangu-sutido/mozi-builder/mozi/db"
-	"github.com/pangu-sutido/mozi-builder/mozi/differ"
-	"github.com/pangu-sutido/mozi-builder/mozi/manifest"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
+	"github.com/pangu-studio/mozi-builder/mozi/differ"
+	"github.com/pangu-studio/mozi-builder/mozi/manifest"
 
 	"github.com/spf13/cobra"
 )

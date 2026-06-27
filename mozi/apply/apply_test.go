@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
-	"github.com/pangu-sutido/mozi-builder/mozi/generator"
+	"github.com/pangu-studio/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi/generator"
 )
 
 func TestPlanModelGeneratesZustandStore(t *testing.T) {

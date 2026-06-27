@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 // DiffResult holds the structured difference between two model versions.

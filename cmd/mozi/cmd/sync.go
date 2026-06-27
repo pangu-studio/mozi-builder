@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	moziapply "github.com/pangu-sutido/mozi-builder/mozi/apply"
-	"github.com/pangu-sutido/mozi-builder/mozi/db"
-	"github.com/pangu-sutido/mozi-builder/mozi/manifest"
+	moziapply "github.com/pangu-studio/mozi-builder/mozi/apply"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
+	"github.com/pangu-studio/mozi-builder/mozi/manifest"
 
 	"github.com/spf13/cobra"
 )

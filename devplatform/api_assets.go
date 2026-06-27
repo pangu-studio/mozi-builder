@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
 // APISurface describes the product surface served by an HTTP API.

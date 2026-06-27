@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/pangu-sutido/mozi-builder/mozi/db"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
 
 	"github.com/spf13/cobra"
 )

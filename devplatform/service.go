@@ -12,13 +12,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
-	moziapply "github.com/pangu-sutido/mozi-builder/mozi/apply"
-	"github.com/pangu-sutido/mozi-builder/mozi/db"
-	"github.com/pangu-sutido/mozi-builder/mozi/differ"
-	"github.com/pangu-sutido/mozi-builder/mozi/generator"
-	"github.com/pangu-sutido/mozi-builder/mozi/manifest"
-	"github.com/pangu-sutido/mozi-builder/mozi/parser"
+	"github.com/pangu-studio/mozi-builder/mozi"
+	moziapply "github.com/pangu-studio/mozi-builder/mozi/apply"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
+	"github.com/pangu-studio/mozi-builder/mozi/differ"
+	"github.com/pangu-studio/mozi-builder/mozi/generator"
+	"github.com/pangu-studio/mozi-builder/mozi/manifest"
+	"github.com/pangu-studio/mozi-builder/mozi/parser"
 
 	"gopkg.in/yaml.v3"
 )

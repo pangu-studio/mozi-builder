@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pangu-sutido/mozi-builder/mozi"
+	"github.com/pangu-studio/mozi-builder/mozi"
 
 	"github.com/gin-gonic/gin"
 )
