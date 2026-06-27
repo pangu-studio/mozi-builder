@@ -1,0 +1,50 @@
+.PHONY: build run dev generate ui-dev build-ui tidy mozi-init mozi-validate mozi-diff mozi-import mozi-export mozi-history
+
+# Use installed mozi binary by default; uncomment the line below to use go run
+# from a sibling mozi-builder directory instead.
+MOZI ?= mozi
+# MOZI := go run -C ../mozi-builder ./cmd/mozi --project-root ../[[.Name]]
+
+# 生成 ent 代码（首次使用 mozi 创建模型后）
+generate:
+	ent generate ./ent/schema
+
+# 开发模式运行
+dev:
+	[[.DevPlatformEnv]]=true go run ./cmd/server
+
+# 构建二进制
+build:
+	go build -o [[.ModuleBase]]-server ./cmd/server
+
+# 构建 UI 前端
+build-ui:
+	cd [[.UIDir]] && npm run build
+
+# UI 前端开发
+ui-dev:
+	cd [[.UIDir]] && npm run dev
+
+# tidy
+tidy:
+	go mod tidy
+
+# ====== mozi 模型驱动开发平台 ======
+
+mozi-init:
+	$(MOZI) init
+
+mozi-import:
+	$(MOZI) import --dir models/
+
+mozi-export:
+	$(MOZI) export --dir models/
+
+mozi-validate:
+	$(MOZI) validate
+
+mozi-diff:
+	$(MOZI) diff --model $(MODEL)
+
+mozi-history:
+	$(MOZI) history --model $(MODEL)

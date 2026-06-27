@@ -1,0 +1,43 @@
+import React, { useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
+
+const App: React.FC = () => {
+  const [greeting, setGreeting] = useState('')
+
+  const handleGreet = async () => {
+    try {
+      const msg = await invoke<string>('greet', { name: '[[.Name]]' })
+      setGreeting(msg)
+    } catch (e) {
+      console.error('invoke failed:', e)
+      setGreeting('Error calling backend')
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
+      <div className="bg-white rounded-lg shadow-md p-8 max-w-md w-full">
+        <h1 className="text-2xl font-bold text-center mb-6">[[.Name]]</h1>
+        <p className="text-gray-600 text-center mb-4">
+          Tauri v2 桌面客户端骨架
+        </p>
+        <button
+          onClick={handleGreet}
+          className="w-full bg-indigo-500 hover:bg-indigo-600 text-white py-2 px-4 rounded transition"
+        >
+          调用 Rust 后端
+        </button>
+        {greeting && (
+          <p className="mt-4 text-center text-green-600 font-medium">
+            {greeting}
+          </p>
+        )}
+        <p className="mt-6 text-xs text-gray-400 text-center">
+          下一步：添加你的业务逻辑，集成 sync API
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export default App

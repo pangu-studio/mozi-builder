@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nickkuk/nickkuk.github.io/main/json-schema/tauri.conf.json",
+  "productName": "[[.Name]]",
+  "version": "0.1.0",
+  "identifier": "[[.TauriIdent]]",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "[[.Name]]",
+        "width": 960,
+        "height": 680,
+        "minWidth": 800,
+        "minHeight": 600,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {}
+}

@@ -1,0 +1,110 @@
+package main
+
+import (
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+
+	"[[.Module]]/internal/middleware"
+	"github.com/pangu-studio/mozi-builder/devplatform"
+	"github.com/pangu-studio/mozi-builder/mozi/db"
+)
+
+func main() {
+	// 加载 .env 文件（不存在则忽略）
+	_ = godotenv.Load()
+
+	// ============================================================================
+	// 开发平台（mozi-builder）— 条件启用
+	// ============================================================================
+	// [[.DevPlatformEnv]] 设置为 "true" 或 "1" 时启用开发平台 API。
+	// 开发平台需要独立的 PostgreSQL 设计数据库（MOZI_DB 环境变量）。
+	devPlatformEnabled := os.Getenv("[[.DevPlatformEnv]]")
+	var devH *devplatform.Handler
+	if devPlatformEnabled == "true" || devPlatformEnabled == "1" {
+		designDBURL := os.Getenv("MOZI_DB")
+		if designDBURL == "" {
+			designDBURL = db.DefaultDesignDB
+		}
+
+		designDB, errDesign := db.InitDB(designDBURL)
+		if errDesign != nil {
+			log.Printf("WARN: Design database (PostgreSQL) unavailable: %v", errDesign)
+			log.Println("      Dev-platform API will return 503 until MOZI_DB is configured correctly")
+		} else {
+			store := db.NewStore(designDB)
+			engine := devplatform.NewDevPlatformEngine()
+			svc := devplatform.NewService(store, engine)
+			devH = devplatform.NewHandler(svc)
+			log.Printf("Dev-platform API enabled — design DB: %s", designDBURL)
+		}
+	} else {
+		log.Println("Dev-platform API disabled (set [[.DevPlatformEnv]]=true to enable)")
+	}
+
+	r := gin.Default()
+
+	// CORS
+	r.Use(middleware.CORS())
+
+	// 静态文件：管理后台 SPA
+	adminPath := os.Getenv("[[.AdminPathEnv]]")
+	if adminPath == "" {
+		adminPath = "[[.UIDir]]/dist"
+	}
+	r.GET("/admin", func(c *gin.Context) {
+		c.File(filepath.Join(adminPath, "index.html"))
+	})
+	r.GET("/admin/*filepath", func(c *gin.Context) {
+		p := c.Param("filepath")
+		fullPath := filepath.Join(adminPath, p[1:])
+		if info, err := os.Stat(fullPath); err == nil && !info.IsDir() {
+			c.File(fullPath)
+			return
+		}
+		// SPA fallback
+		c.File(filepath.Join(adminPath, "index.html"))
+	})
+
+	// ============================================================================
+	// API 路由
+	// ============================================================================
+	api := r.Group("/api")
+	{
+		// 健康检查
+		api.GET("/ping", func(c *gin.Context) {
+			c.JSON(200, gin.H{"status": "ok"})
+		})
+
+		// 开发平台 API（需要 PostgreSQL 设计数据库）
+		devAPI := api.Group("/dev-platform")
+		devAPI.Use(middleware.BuilderAuth())
+		registerDevPlatformRoutes(devAPI, devH)
+	}
+
+	addr := os.Getenv("[[.AddrEnv]]")
+	if addr == "" {
+		addr = ":8080"
+	}
+	log.Printf("[[.Name]] starting on %s", addr)
+	log.Fatal(http.ListenAndServe(addr, r))
+}
+
+// registerDevPlatformRoutes embeds mozi builder routes into the host application.
+func registerDevPlatformRoutes(api *gin.RouterGroup, h *devplatform.Handler) {
+	if h == nil {
+		devplatform.RegisterUnavailableRoutes(api, func(c *gin.Context) {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":  "Design database (PostgreSQL) not available",
+				"detail": "The model-driven development platform requires a PostgreSQL design database. Set MOZI_DB environment variable.",
+				"hint":   "Example: MOZI_DB=postgres://localhost:5432/[[.ModuleBase]]_design?sslmode=disable",
+			})
+		})
+		return
+	}
+	devplatform.RegisterRoutes(api, h)
+}

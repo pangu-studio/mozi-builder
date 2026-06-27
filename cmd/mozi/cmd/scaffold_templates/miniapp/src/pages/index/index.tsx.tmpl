@@ -1,0 +1,49 @@
+import React, { useState, useEffect } from "react";
+import { View, Text, Button } from "@tarojs/components";
+import { ping } from "../../utils/api";
+import "./index.scss";
+
+/**
+ * 首页 — 占位页面。
+ *
+ * TODO: 添加你的业务逻辑。
+ * FSRS 调度由客户端 WASM（fsrs-browser）计算，计划通过 /api/sync
+ * 批量同步 decks/cards/card_states。参考 memflow-miniapp 和 CLAUDE.md。
+ */
+const Index: React.FC = () => {
+  const [apiStatus, setApiStatus] = useState<string>("checking");
+
+  useEffect(() => {
+    ping()
+      .then((res) => setApiStatus(res.status))
+      .catch(() => setApiStatus("error"));
+  }, []);
+
+  return (
+    <View className="index-page">
+      <View className="header">
+        <Text className="title">[[.Name]]</Text>
+        <Text className="subtitle">微信小程序骨架</Text>
+      </View>
+
+      <View className="card">
+        <Text className="card-title">API 状态</Text>
+        <Text className={apiStatus === "ok" ? "status-ok" : "status-error"}>
+          {apiStatus === "checking" ? "检查中 …" : apiStatus === "ok" ? "正常" : "异常"}
+        </Text>
+      </View>
+
+      <View className="card">
+        <Text className="card-title">下一步</Text>
+        <View className="steps">
+          <Text>1. 配置 project.config.json 中的 appid</Text>
+          <Text>2. 替换 API_BASE 为实际后端地址</Text>
+          <Text>3. 集成 fsrs-browser WASM 进行客户端调度</Text>
+          <Text>4. 使用 /api/sync 批量同步数据</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
+export default Index;

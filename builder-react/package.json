@@ -1,13 +1,22 @@
 {
-  "name": "mozi-builder-react",
-  "version": "0.0.0",
-  "private": true,
+  "name": "@pangu-studio/mozi-builder-react",
+  "version": "0.1.0",
   "type": "module",
-  "main": "./index.ts",
-  "types": "./index.ts",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./index.ts",
-    "./*": "./*"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": "./dist/*"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "prepublishOnly": "npm run build"
   },
   "peerDependencies": {
     "@ant-design/icons": "^6.0.0",
@@ -18,5 +27,19 @@
     "react": "^19.0.0",
     "react-router-dom": "^7.0.0",
     "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pangu-studio/mozi-builder.git",
+    "directory": "builder-react"
   }
 }

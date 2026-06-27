@@ -1,0 +1,41 @@
+import { create } from 'zustand'
+
+interface AuthState {
+  token: string | null
+  user: { id: string; email: string; role: string } | null
+  isLoggedIn: boolean
+  login: (token: string, user: { id: string; email: string; role: string }) => void
+  logout: () => void
+  init: () => void
+}
+
+export const useAuth = create<AuthState>((set) => ({
+  token: null,
+  user: null,
+  isLoggedIn: false,
+
+  login: (token, user) => {
+    localStorage.setItem('admin_token', token)
+    localStorage.setItem('admin_user', JSON.stringify(user))
+    set({ token, user, isLoggedIn: true })
+  },
+
+  logout: () => {
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_user')
+    set({ token: null, user: null, isLoggedIn: false })
+  },
+
+  init: () => {
+    const token = localStorage.getItem('admin_token')
+    const userStr = localStorage.getItem('admin_user')
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        set({ token, user, isLoggedIn: true })
+      } catch {
+        localStorage.removeItem('admin_user')
+      }
+    }
+  },
+}))

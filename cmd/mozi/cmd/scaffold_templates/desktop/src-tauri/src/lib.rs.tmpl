@@ -1,0 +1,35 @@
+use tauri::State;
+
+// ============================================================================
+// App State
+// ============================================================================
+
+/// Shared application state.
+// TODO: Add your state here (e.g., database pool, config).
+pub struct AppState {}
+
+// ============================================================================
+// Commands
+// ============================================================================
+
+#[tauri::command]
+fn greet(name: &str, _state: State<'_, AppState>) -> String {
+    format!("Hello, {}! Welcome to [[.Name]].", name)
+}
+
+// ============================================================================
+// App Entry
+// ============================================================================
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .setup(|_app| {
+            // Initialize app state
+            _app.manage(AppState {});
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![greet])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}

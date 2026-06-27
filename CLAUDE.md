@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```text
 mozi-builder/
-├── cmd/mozi/cmd/     # CLI (cobra): init, validate, diff, model, change-plan, sync, export, etc.
+├── cmd/mozi/cmd/     # CLI (cobra): new, init, validate, diff, model, change-plan, sync, export, etc.
+│   └── scaffold_templates/  # Embedded project scaffold templates (backend/web/desktop/miniapp)
 ├── mozi/             # Core library — zero deps on external project code
 │   ├── types.go      # Central IR types: ModelIR, FieldIR, RelationIR, etc.
 │   ├── parser/       # YAML → ModelIR parsing + validation
@@ -34,6 +35,10 @@ go test ./...
 # Run tests for a specific package
 go test ./mozi/parser/...
 go test ./devplatform/...
+
+# CLI usage (from anywhere)
+mozi new myapp --module github.com/foo/myapp  # Scaffold a new project (no go.mod required)
+mozi new myapp --module ... --desktop --miniapp  # + optional Tauri desktop & WeChat miniapp
 
 # CLI usage (from a business project directory)
 mozi validate                  # Validate all model YAML

@@ -1,0 +1,59 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Quick Start
+
+```bash
+# Backend
+make dev                                    # → :8080 (requires Go & PostgreSQL)
+
+# Web UI ([[.UIDir]]/)
+cd [[.UIDir]] && npm install && npm run dev  # → :5173 (proxies /api → :8080)
+
+# Desktop (Tauri — optional)
+cd [[.DesktopDir]] && npm install && npm run tauri dev
+
+# Mini-program (Taro — optional)
+cd [[.MiniappDir]] && npm install && npm run dev:weapp
+```
+
+## Architecture
+
+This is a **mozi-builder-based** project: the mozi model-driven development platform
+is embedded via `github.com/pangu-studio/mozi-builder/devplatform`. Business models
+are defined using the mozi modeling framework (via `mozi` CLI or the integrated
+dev-platform UI), and code is generated through AI Coding change plans.
+
+**Stack**: Go + Gin (HTTP) + mozi-builder (dev platform)
+**Future**: Ent (ORM) will be added when the first business model is generated.
+
+### Key environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `[[.AddrEnv]]` | `:8080` | Server listen address |
+| `[[.DevPlatformEnv]]` | `false` | Enable dev-platform API (`true`/`1` to enable) |
+| `MOZI_DB` | `postgres://localhost:5432/[[.ModuleBase]]_design?sslmode=disable` | Design database DSN |
+| `[[.AdminPathEnv]]` | `[[.UIDir]]/dist` | Web UI build output directory |
+| `[[.BuilderTokenEnv]]` | `dev` | Builder access token (placeholder; replace in prod) |
+
+### Endpoints (day 1)
+
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| `GET` | `/api/ping` | — | Health check |
+| `*` | `/dev-platform/*` | Builder | Mozi dev platform API (when `[[.DevPlatformEnv]]=true`) |
+| `*` | `/admin/*` | — | Web UI SPA static files |
+
+### Adding your first model
+
+1. Start PostgreSQL and set `MOZI_DB` in `.env`.
+2. `mozi init` — initializes the design database.
+3. Model your domain via the `mozi` CLI or the integrated dev-platform UI at `http://localhost:8080/admin/dev-platform`.
+4. `mozi change-plan --model <Module/Model>` — get an AI Coding contract.
+5. Apply the change plan to generate Ent schemas, handlers, and UI pages.
+6. `make generate && cd [[.UIDir]] && npm run build && cd .. && make build`.
+
+For detailed mozi workflow documentation, see `docs/dev-platform-guide.md` and the
+[mozi-builder skills/mozi/SKILL.md](https://github.com/pangu-studio/mozi-builder/blob/main/skills/mozi/SKILL.md) skill file.

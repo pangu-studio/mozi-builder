@@ -1,0 +1,89 @@
+import Taro from "@tarojs/taro";
+
+// ============================================================================
+// API Client
+// ============================================================================
+
+// TODO: 替换为实际的后端 API 地址
+const API_BASE = "https://api.example.com";
+
+/**
+ * 通用 HTTP 请求封装。
+ * 自动附加 JWT Bearer token（从 storage 读取），401 时清除 token 并重定向登录。
+ */
+export async function request<T>(
+  url: string,
+  options: Partial<Taro.request.Option> = {}
+): Promise<T> {
+  const token = Taro.getStorageSync("token");
+  const res = await Taro.request({
+    url: `${API_BASE}${url}`,
+    method: options.method || "GET",
+    header: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.header as Record<string, string>),
+    },
+    data: options.data,
+    ...options,
+  });
+
+  if (res.statusCode === 401) {
+    Taro.removeStorageSync("token");
+    // TODO: 重定向到登录页
+    throw new Error("未登录");
+  }
+  return res.data as T;
+}
+
+// ============================================================================
+// Auth API
+// ============================================================================
+
+interface WeChatLoginResponse {
+  token: string;
+  needBindEmail?: boolean;
+}
+
+/**
+ * 微信一键登录流程：
+ * 1. Taro.login() 获取 code
+ * 2. 发送 code 到后端换取 JWT
+ * 3. 存储 token 到本地
+ */
+export async function wechatLogin(): Promise<{ token: string; needBindEmail?: boolean } | null> {
+  try {
+    const loginRes = await Taro.login();
+    if (!loginRes.code) {
+      throw new Error("wx.login 失败");
+    }
+
+    const res = await Taro.request<WeChatLoginResponse>({
+      url: `${API_BASE}/api/auth/wechat/login`,
+      method: "POST",
+      header: { "Content-Type": "application/json" },
+      data: { code: loginRes.code },
+    });
+
+    if (res.statusCode === 200 && res.data?.token) {
+      Taro.setStorageSync("token", res.data.token);
+      return { token: res.data.token, needBindEmail: res.data.needBindEmail };
+    }
+    return null;
+  } catch (e) {
+    console.error("wechatLogin failed:", e);
+    return null;
+  }
+}
+
+// ============================================================================
+// Example API
+// ============================================================================
+
+export interface PingResponse {
+  status: string;
+}
+
+export function ping() {
+  return request<PingResponse>("/api/ping");
+}

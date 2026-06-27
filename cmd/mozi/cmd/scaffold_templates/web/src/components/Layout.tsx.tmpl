@@ -1,0 +1,71 @@
+import React from 'react'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Layout, Menu } from 'antd'
+import { DashboardOutlined, AppstoreOutlined } from '@ant-design/icons'
+import { createMoziBuilderMenuItem } from '@pangu-studio/mozi-builder-react'
+
+const { Sider, Content, Header } = Layout
+
+const AdminLayout: React.FC = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const menuItems = [
+    {
+      key: '/dashboard',
+      icon: <DashboardOutlined />,
+      label: '概览',
+    },
+    createMoziBuilderMenuItem('/dev-platform'),
+  ]
+
+  return (
+    <Layout style={{ minHeight: '100vh' }}>
+      <Sider
+        width={220}
+        theme="dark"
+        collapsible
+      >
+        <div
+          style={{
+            height: 32,
+            margin: 16,
+            color: '#fff',
+            fontSize: 16,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          [[.Name]]
+        </div>
+        <Menu
+          theme="dark"
+          mode="inline"
+          selectedKeys={[location.pathname]}
+          items={menuItems}
+          onClick={({ key }) => navigate(key)}
+        />
+      </Sider>
+      <Layout>
+        <Header
+          style={{
+            padding: '0 24px',
+            background: '#fff',
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: 18, fontWeight: 500 }}>
+            [[.Name]] Admin
+          </h1>
+        </Header>
+        <Content style={{ margin: 24 }}>
+          <Outlet />
+        </Content>
+      </Layout>
+    </Layout>
+  )
+}
+
+export default AdminLayout

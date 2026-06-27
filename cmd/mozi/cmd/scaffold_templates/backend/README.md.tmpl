@@ -1,0 +1,61 @@
+# [[.Name]]
+
+基于 [mozi-builder](https://github.com/pangu-studio/mozi-builder) 构建的模型驱动应用。
+
+## 大仓结构（Monorepo）
+
+```
+[[.Name]]/
+├── cmd/server/         # Go 后端入口
+├── internal/           # 业务逻辑（handler/service/model）
+├── models/             # mozi 模型 YAML 快照
+├── [[.UIDir]]/         # Web 管理后台（React + Ant Design + mozi-builder-react）
+[[- if .DesktopDir ]]
+├── [[.DesktopDir]]/         # Tauri 桌面端（可选）
+[[- end ]]
+[[- if .MiniappDir ]]
+├── [[.MiniappDir]]/         # 微信小程序（可选）
+[[- end ]]
+├── Makefile            # 构建/开发命令
+└── go.mod
+```
+
+## 前置要求
+
+- Go 1.26+
+- Node.js 20+
+- PostgreSQL（用于 mozi 设计数据库）
+
+## 快速启动
+
+```bash
+# 1. 安装后端依赖
+go mod tidy
+
+# 2. 安装前端依赖
+cd [[.UIDir]] && npm install && cd ..
+
+# 3. 初始化设计数据库
+export MOZI_DB=postgres://localhost:5432/[[.ModuleBase]]_design?sslmode=disable
+mozi init
+
+# 4. 启动开发服务器
+[[.DevPlatformEnv]]=true make dev
+
+# 5. 启动前端开发服务器（另一个终端）
+cd [[.UIDir]] && npm run dev
+```
+
+## 开发平台
+
+启动服务后访问 http://localhost:8080/admin → "开发平台" 菜单进入 mozi 模型设计器。
+也可以使用 CLI：
+
+```bash
+mozi model create --json '{...}'
+mozi validate
+mozi diff --model <Module/Model>
+mozi change-plan --model <Module/Model>
+```
+
+详细文档：`docs/dev-platform-guide.md`

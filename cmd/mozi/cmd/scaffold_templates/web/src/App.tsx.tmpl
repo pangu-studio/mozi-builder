@@ -1,0 +1,53 @@
+import React from 'react'
+import { Routes, Route } from 'react-router-dom'
+import { ConfigProvider, App as AntApp } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import AdminLayout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import api from './api'
+import { BuilderRoutes, MoziBuilderProvider } from '@pangu-studio/mozi-builder-react'
+import moziGuideMarkdown from '../../../docs/dev-platform-guide.md?raw'
+
+// mozi:import ref — mozi 管理的导入将由 mozi 标记系统插入此区域
+// mozi:end import ref
+
+const App: React.FC = () => {
+  return (
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        token: {
+          colorPrimary: '#667eea',
+          borderRadius: 8,
+        },
+      }}
+    >
+      <AntApp>
+        <MoziBuilderProvider
+          apiClient={api}
+          apiBasePath="/api/dev-platform"
+          routeBasePath="/dev-platform"
+          guideMarkdown={moziGuideMarkdown}
+        >
+          <Routes>
+            {/* mozi:route ref — mozi 管理的路由将由 mozi 标记系统插入此区域 */}
+            {/* mozi:end route ref */}
+            <Route
+              element={
+                <AdminLayout />
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="dev-platform">
+                {BuilderRoutes()}
+              </Route>
+            </Route>
+          </Routes>
+        </MoziBuilderProvider>
+      </AntApp>
+    </ConfigProvider>
+  )
+}
+
+export default App

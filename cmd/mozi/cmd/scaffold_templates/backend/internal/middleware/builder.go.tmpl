@@ -1,0 +1,36 @@
+package middleware
+
+import (
+	"net/http"
+	"os"
+
+	"github.com/gin-gonic/gin"
+)
+
+// BuilderAuth 是一个占位 builder 认证中间件。
+// 默认使用环境变量 [[.BuilderTokenEnv]] 中的令牌做简单 Bearer Token 校验。
+// TODO: 替换为真实的认证系统（JWT + 用户角色），参考 memflow-cloud 的 middleware.BuilderAuth 实现。
+func BuilderAuth() gin.HandlerFunc {
+	builderToken := os.Getenv("[[.BuilderTokenEnv]]")
+	if builderToken == "" {
+		builderToken = "dev"
+	}
+
+	return func(c *gin.Context) {
+		token := c.GetHeader("Authorization")
+		if token != "" && len(token) > 7 && token[:7] == "Bearer " {
+			token = token[7:]
+		}
+
+		if token != builderToken {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":  "Unauthorized",
+				"detail": "Valid builder token required. Set [[.BuilderTokenEnv]] env var or implement real auth.",
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}

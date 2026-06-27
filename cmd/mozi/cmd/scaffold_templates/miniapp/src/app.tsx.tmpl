@@ -1,0 +1,14 @@
+import { Component, PropsWithChildren } from "react";
+import Taro from "@tarojs/taro";
+
+class App extends Component<PropsWithChildren> {
+  componentDidMount() {
+    // TODO: 启动时检查登录状态
+  }
+
+  render() {
+    return this.props.children;
+  }
+}
+
+export default App;
