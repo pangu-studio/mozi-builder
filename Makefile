@@ -6,9 +6,6 @@ BIN_DIR := bin
 GO := go
 GOPROXY ?= https://goproxy.cn,direct
 
-# CGO is required for mattn/go-sqlite3
-export CGO_ENABLED := 1
-
 # Installation paths (configurable via environment)
 PREFIX ?= /usr/local
 INSTALL_DIR ?= $(PREFIX)/bin
@@ -19,7 +16,7 @@ GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 VERSION   := $(shell cat VERSION 2>/dev/null || echo "dev")
 
-LDFLAGS := -X 'github.com/pangu-sutido/mozi-builder/cmd/mozi/cmd.version=$(VERSION)' \
+LDFLAGS := -X 'github.com/pangu-studio/mozi-builder/cmd/mozi/cmd.version=$(VERSION)' \
            -X 'main.BuildTime=$(BUILD_TIME)' \
            -X 'main.GitCommit=$(GIT_COMMIT)' \
            -X 'main.GitBranch=$(GIT_BRANCH)'

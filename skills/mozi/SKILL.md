@@ -2,7 +2,7 @@
 slug: mozi
 name: mozi
 displayName: Mozi 模型驱动开发
-version: 0.1.1
+version: 0.2.1
 description: 使用 mozi CLI 进行模型驱动开发。当需要创建或修改业务模型、校验或 lint ModelIR、检查差异与 AI 变更计划、管理错误码或设计字典、导入导出 YAML 快照，以及生成受控的数据库迁移、Bruno 合约、权限骨架、i18n 目录或 OpenAPI TypeScript SDK 时使用。
 ---
 
@@ -96,6 +96,85 @@ test_contracts:
       status: 404
       error_code: DECK_NOT_FOUND
 ```
+
+## 安装 Mozi CLI
+
+先检查本机是否已有可执行文件：
+
+```bash
+command -v mozi && mozi --version
+```
+
+### 版本一致性检查（必须执行）
+
+每次开始使用本 Skill 时，读取 frontmatter 中的 `version`，并与 `mozi --version` 输出的版本号比较。
+
+- 版本一致：继续执行任务。
+- CLI 未安装：按下方平台说明引导安装。
+- CLI 版本低于或不同于 Skill 版本：先明确提醒用户升级 Mozi CLI，并提供 GitHub Releases 安装方式。
+- 未完成升级前，不要调用当前 CLI 可能尚未支持的新命令或新字段；可以继续执行与旧版本明确兼容的只读检查。
+- 升级后再次运行 `mozi --version`，确认与 Skill 版本一致，再继续写操作。
+
+提醒示例：
+
+> 当前 Mozi Skill 版本为 `0.2.1`，本机 CLI 版本为 `<实际版本>`，两者不一致。建议先从 GitHub Releases 升级 CLI；升级并确认版本一致后再继续模型写入或产物生成。
+
+未安装时，从 [GitHub Releases](https://github.com/pangu-studio/mozi-builder/releases) 下载当前平台产物。不要从不明镜像下载，也不要跳过校验和检查。
+
+### macOS / Linux
+
+发布产物支持 `darwin`、`linux` 的 `amd64`、`arm64`。使用以下命令自动识别平台并安装到用户目录：
+
+```bash
+set -euo pipefail
+case "$(uname -s)" in
+  Darwin) os=darwin ;;
+  Linux) os=linux ;;
+  *) echo "不支持的系统: $(uname -s)" >&2; exit 1 ;;
+esac
+case "$(uname -m)" in
+  x86_64|amd64) arch=amd64 ;;
+  arm64|aarch64) arch=arm64 ;;
+  *) echo "不支持的架构: $(uname -m)" >&2; exit 1 ;;
+esac
+asset="mozi_${os}_${arch}.tar.gz"
+base="https://github.com/pangu-studio/mozi-builder/releases/latest/download"
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+curl -fL "$base/$asset" -o "$tmp/$asset"
+curl -fL "$base/checksums.txt" -o "$tmp/checksums.txt"
+expected="$(awk -v file="$asset" '$2 == file {print $1}' "$tmp/checksums.txt")"
+actual="$(shasum -a 256 "$tmp/$asset" | awk '{print $1}')"
+test -n "$expected" && test "$actual" = "$expected"
+tar -xzf "$tmp/$asset" -C "$tmp"
+mkdir -p "$HOME/.local/bin"
+install -m 0755 "$tmp/mozi_${os}_${arch}/mozi" "$HOME/.local/bin/mozi"
+"$HOME/.local/bin/mozi" --version
+```
+
+确保 `$HOME/.local/bin` 已加入 `PATH`。没有 `curl` 或无法访问 GitHub 时，停止并让用户手动提供可信的 Release 产物；不要自行改用第三方下载站。
+
+### Windows PowerShell
+
+```powershell
+$arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'amd64' }
+$asset = "mozi_windows_${arch}.zip"
+$base = 'https://github.com/pangu-studio/mozi-builder/releases/latest/download'
+$tmp = Join-Path $env:TEMP "mozi-install-$PID"
+New-Item -ItemType Directory -Force $tmp | Out-Null
+Invoke-WebRequest "$base/$asset" -OutFile (Join-Path $tmp $asset)
+Invoke-WebRequest "$base/checksums.txt" -OutFile (Join-Path $tmp 'checksums.txt')
+$expected = ((Get-Content (Join-Path $tmp 'checksums.txt') | Where-Object { $_ -match "\s$([regex]::Escape($asset))$" }) -split '\s+')[0]
+$actual = (Get-FileHash (Join-Path $tmp $asset) -Algorithm SHA256).Hash.ToLower()
+if (-not $expected -or $actual -ne $expected.ToLower()) { throw 'Mozi CLI 校验和不匹配' }
+Expand-Archive (Join-Path $tmp $asset) -DestinationPath $tmp -Force
+$bin = Join-Path $HOME 'bin'
+New-Item -ItemType Directory -Force $bin | Out-Null
+Copy-Item (Join-Path $tmp "mozi_windows_${arch}\mozi.exe") (Join-Path $bin 'mozi.exe') -Force
+& (Join-Path $bin 'mozi.exe') --version
+```
+
+将 `$HOME\bin` 加入用户 `PATH`。安装后始终运行 `mozi --version`，确认 CLI 可执行且版本符合预期。
 
 ## 环境
 
