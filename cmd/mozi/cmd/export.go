@@ -183,6 +183,13 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 		}
 		writeYAMLStringList(&sb, "business_rules", model.Semantics.BusinessRules)
 		writeYAMLStringList(&sb, "permissions", model.Semantics.Permissions)
+		if len(model.Semantics.PermissionRules) > 0 {
+			data, _ := yaml.Marshal(model.Semantics.PermissionRules)
+			sb.WriteString("  permission_rules:\n")
+			for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+				sb.WriteString("    " + line + "\n")
+			}
+		}
 		writeYAMLStringList(&sb, "lifecycle", model.Semantics.Lifecycle)
 	}
 
@@ -220,6 +227,9 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 		sb.WriteString(fmt.Sprintf("  - name: %s\n", f.Name))
 		sb.WriteString(fmt.Sprintf("    type: %s\n", f.Type))
 		sb.WriteString(fmt.Sprintf("    label: %s\n", f.Label))
+		if f.I18nKey != "" {
+			sb.WriteString(fmt.Sprintf("    i18n_key: %s\n", f.I18nKey))
+		}
 		if f.Primary {
 			sb.WriteString("    primary: true\n")
 		}
@@ -314,7 +324,7 @@ func writeYAMLStringList(sb *strings.Builder, key string, values []string) {
 
 func hasSemanticConfig(s mozi.SemanticConfig) bool {
 	return s.Purpose != "" || s.UserValue != "" || len(s.Audience) > 0 ||
-		len(s.BusinessRules) > 0 || len(s.Permissions) > 0 || len(s.Lifecycle) > 0
+		len(s.BusinessRules) > 0 || len(s.Permissions) > 0 || len(s.PermissionRules) > 0 || len(s.Lifecycle) > 0
 }
 
 func hasUIIntentConfig(s mozi.UIIntentConfig) bool {

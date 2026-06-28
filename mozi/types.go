@@ -126,6 +126,7 @@ type FieldIR struct {
 	Name        string        `yaml:"name" json:"name"`
 	Type        FieldType     `yaml:"type" json:"type"`
 	Label       string        `yaml:"label" json:"label"`
+	I18nKey     string        `yaml:"i18n_key,omitempty" json:"i18n_key,omitempty"`
 	Required    bool          `yaml:"required,omitempty" json:"required,omitempty"`
 	Unique      bool          `yaml:"unique,omitempty" json:"unique,omitempty"`
 	Sensitive   bool          `yaml:"sensitive,omitempty" json:"sensitive,omitempty"`
@@ -175,12 +176,24 @@ type DisplayConfig struct {
 // SemanticConfig captures product and domain meaning that cannot be inferred
 // from table fields alone.
 type SemanticConfig struct {
-	Purpose       string   `yaml:"purpose,omitempty" json:"purpose,omitempty"`
-	Audience      []string `yaml:"audience,omitempty" json:"audience,omitempty"`
-	UserValue     string   `yaml:"user_value,omitempty" json:"user_value,omitempty"`
-	BusinessRules []string `yaml:"business_rules,omitempty" json:"business_rules,omitempty"`
-	Permissions   []string `yaml:"permissions,omitempty" json:"permissions,omitempty"`
-	Lifecycle     []string `yaml:"lifecycle,omitempty" json:"lifecycle,omitempty"`
+	Purpose         string         `yaml:"purpose,omitempty" json:"purpose,omitempty"`
+	Audience        []string       `yaml:"audience,omitempty" json:"audience,omitempty"`
+	UserValue       string         `yaml:"user_value,omitempty" json:"user_value,omitempty"`
+	BusinessRules   []string       `yaml:"business_rules,omitempty" json:"business_rules,omitempty"`
+	Permissions     []string       `yaml:"permissions,omitempty" json:"permissions,omitempty"`
+	PermissionRules []PermissionIR `yaml:"permission_rules,omitempty" json:"permission_rules,omitempty"`
+	Lifecycle       []string       `yaml:"lifecycle,omitempty" json:"lifecycle,omitempty"`
+}
+
+type PermissionIR struct {
+	Effect      string `yaml:"effect,omitempty" json:"effect,omitempty"` // allow | deny
+	Principal   string `yaml:"principal" json:"principal"`
+	Resource    string `yaml:"resource" json:"resource"`
+	Action      string `yaml:"action" json:"action"`
+	Scope       string `yaml:"scope,omitempty" json:"scope,omitempty"` // own | group | tenant | all
+	TenantField string `yaml:"tenant_field,omitempty" json:"tenant_field,omitempty"`
+	OwnerField  string `yaml:"owner_field,omitempty" json:"owner_field,omitempty"`
+	Condition   string `yaml:"condition,omitempty" json:"condition,omitempty"`
 }
 
 // UIIntentConfig describes how the model should appear and behave in product UI.
@@ -234,19 +247,41 @@ type UISurfaceViewConfig struct {
 
 // APIIntentConfig describes the public API contract expected for this model.
 type APIIntentConfig struct {
-	Exposure           string   `yaml:"exposure,omitempty" json:"exposure,omitempty"`
-	Consumers          []string `yaml:"consumers,omitempty" json:"consumers,omitempty"`
-	Auth               string   `yaml:"auth,omitempty" json:"auth,omitempty"`
-	BasePath           string   `yaml:"base_path,omitempty" json:"base_path,omitempty"`
-	Operations         []string `yaml:"operations,omitempty" json:"operations,omitempty"`
-	RequestNotes       []string `yaml:"request_notes,omitempty" json:"request_notes,omitempty"`
-	ResponseNotes      []string `yaml:"response_notes,omitempty" json:"response_notes,omitempty"`
-	ErrorCases         []string `yaml:"error_cases,omitempty" json:"error_cases,omitempty"`
-	ErrorCodes         []string `yaml:"error_codes,omitempty" json:"error_codes,omitempty"`
-	Idempotency        string   `yaml:"idempotency,omitempty" json:"idempotency,omitempty"`
-	RateLimit          string   `yaml:"rate_limit,omitempty" json:"rate_limit,omitempty"`
-	Versioning         string   `yaml:"versioning,omitempty" json:"versioning,omitempty"`
-	CompatibilityNotes []string `yaml:"compatibility_notes,omitempty" json:"compatibility_notes,omitempty"`
+	Exposure           string           `yaml:"exposure,omitempty" json:"exposure,omitempty"`
+	Consumers          []string         `yaml:"consumers,omitempty" json:"consumers,omitempty"`
+	Auth               string           `yaml:"auth,omitempty" json:"auth,omitempty"`
+	BasePath           string           `yaml:"base_path,omitempty" json:"base_path,omitempty"`
+	Operations         []string         `yaml:"operations,omitempty" json:"operations,omitempty"`
+	RequestNotes       []string         `yaml:"request_notes,omitempty" json:"request_notes,omitempty"`
+	ResponseNotes      []string         `yaml:"response_notes,omitempty" json:"response_notes,omitempty"`
+	ErrorCases         []string         `yaml:"error_cases,omitempty" json:"error_cases,omitempty"`
+	ErrorCodes         []string         `yaml:"error_codes,omitempty" json:"error_codes,omitempty"`
+	Idempotency        string           `yaml:"idempotency,omitempty" json:"idempotency,omitempty"`
+	RateLimit          string           `yaml:"rate_limit,omitempty" json:"rate_limit,omitempty"`
+	Versioning         string           `yaml:"versioning,omitempty" json:"versioning,omitempty"`
+	CompatibilityNotes []string         `yaml:"compatibility_notes,omitempty" json:"compatibility_notes,omitempty"`
+	TestContracts      []TestContractIR `yaml:"test_contracts,omitempty" json:"test_contracts,omitempty"`
+}
+
+type TestContractIR struct {
+	Name        string            `yaml:"name" json:"name"`
+	OperationID string            `yaml:"operation_id" json:"operation_id"`
+	Scenario    string            `yaml:"scenario,omitempty" json:"scenario,omitempty"`
+	Request     TestRequestIR     `yaml:"request,omitempty" json:"request,omitempty"`
+	Expect      TestExpectationIR `yaml:"expect" json:"expect"`
+}
+
+type TestRequestIR struct {
+	Path    map[string]string `yaml:"path,omitempty" json:"path,omitempty"`
+	Query   map[string]string `yaml:"query,omitempty" json:"query,omitempty"`
+	Headers map[string]string `yaml:"headers,omitempty" json:"headers,omitempty"`
+	Body    map[string]any    `yaml:"body,omitempty" json:"body,omitempty"`
+}
+
+type TestExpectationIR struct {
+	Status       int            `yaml:"status" json:"status"`
+	ErrorCode    string         `yaml:"error_code,omitempty" json:"error_code,omitempty"`
+	BodyContains map[string]any `yaml:"body_contains,omitempty" json:"body_contains,omitempty"`
 }
 
 // ============================================================================

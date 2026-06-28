@@ -963,6 +963,9 @@ func buildChangeTasks(model *mozi.ModelIR, diff *differ.DiffResult, affectedFile
 			Description: "Translate business purpose, user value, permissions, lifecycle, and business rules into service behavior and tests where needed.",
 			Files:       filesWithPrefix(affectedFiles, "internal/model/", "internal/handler/", "internal/service/"),
 		})
+		if len(model.Semantics.PermissionRules) > 0 {
+			tasks = append(tasks, ChangePlanTask{Area: "permissions", Description: "Generate permission constants and wire server-side enforcement; client checks remain presentation-only.", Files: []string{"internal/permissions/generated.go"}})
+		}
 	}
 	if hasPlanCategory(diff, "ui_intent") {
 		tasks = append(tasks, ChangePlanTask{
@@ -977,6 +980,13 @@ func buildChangeTasks(model *mozi.ModelIR, diff *differ.DiffResult, affectedFile
 			Description: "Update public/internal API routes, DTOs, auth behavior, validation, error responses, idempotency, versioning, and OpenAPI docs to match the API intent.",
 			Files:       filesWithPrefix(affectedFiles, "internal/handler/", "internal/service/", "internal/model/", "docs/"),
 		})
+		if len(model.APIIntent.TestContracts) > 0 {
+			tasks = append(tasks, ChangePlanTask{Area: "contract-tests", Description: "Generate and run framework-independent HTTP contract cases.", Files: []string{"contracts/bruno/"}})
+		}
+		tasks = append(tasks, ChangePlanTask{Area: "sdk", Description: "Regenerate the TypeScript SDK from the reviewed OpenAPI document.", Files: []string{"sdk/typescript/client.ts"}})
+	}
+	if modelHasI18n(model) {
+		tasks = append(tasks, ChangePlanTask{Area: "i18n", Description: "Export the source catalog and validate missing, stale, and placeholder-mismatched translations.", Files: []string{"locales/source.json"}})
 	}
 
 	tasks = append(tasks, ChangePlanTask{
@@ -985,6 +995,15 @@ func buildChangeTasks(model *mozi.ModelIR, diff *differ.DiffResult, affectedFile
 		Files:       []string{fmt.Sprintf("models/%s/%s.yaml", model.Module, toSnake(model.Name))},
 	})
 	return tasks
+}
+
+func modelHasI18n(model *mozi.ModelIR) bool {
+	for _, field := range model.Fields {
+		if field.I18nKey != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Service) loadModelVersionForDiff(modelName string, version string, current *mozi.ModelIR) *mozi.ModelIR {

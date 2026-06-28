@@ -94,6 +94,7 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 		}
 		hasCreated, hasUpdated := false, false
 		ids := map[string]bool{}
+		i18nKeys := map[string]bool{}
 		for _, field := range model.Fields {
 			if strings.TrimSpace(field.Label) == "" {
 				add("missing-label", LintWarning, ref, field.Name, "field label is missing")
@@ -104,6 +105,12 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 			if field.ID != "" {
 				ids[field.ID] = true
 			}
+			if field.I18nKey != "" && i18nKeys[field.I18nKey] {
+				add("duplicate-i18n-key", LintError, ref, field.Name, "i18n key is duplicated in model")
+			}
+			if field.I18nKey != "" {
+				i18nKeys[field.I18nKey] = true
+			}
 			hasCreated = hasCreated || field.Name == "created_at"
 			hasUpdated = hasUpdated || field.Name == "updated_at"
 		}
@@ -113,6 +120,41 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 		for _, code := range model.APIIntent.ErrorCodes {
 			if !errorCodes[code] {
 				add("unknown-error-code", LintError, ref, "api_intent.error_codes", fmt.Sprintf("error code %q is not registered", code))
+			}
+		}
+		for i, rule := range model.Semantics.PermissionRules {
+			field := fmt.Sprintf("semantics.permission_rules[%d]", i)
+			if rule.Principal == "" || rule.Resource == "" || rule.Action == "" {
+				add("invalid-permission-rule", LintError, ref, field, "principal, resource, and action are required")
+			}
+			if rule.Effect != "" && rule.Effect != "allow" && rule.Effect != "deny" {
+				add("invalid-permission-effect", LintError, ref, field, "effect must be allow or deny")
+			}
+			if rule.Scope != "" && !map[string]bool{"own": true, "group": true, "tenant": true, "all": true}[rule.Scope] {
+				add("invalid-permission-scope", LintError, ref, field, "scope must be own, group, tenant, or all")
+			}
+			if rule.Scope == "own" && rule.OwnerField == "" {
+				add("missing-owner-field", LintError, ref, field, "own scope requires owner_field")
+			}
+			if rule.Scope == "tenant" && rule.TenantField == "" {
+				add("missing-tenant-field", LintError, ref, field, "tenant scope requires tenant_field")
+			}
+		}
+		contractNames := map[string]bool{}
+		for i, contract := range model.APIIntent.TestContracts {
+			field := fmt.Sprintf("api_intent.test_contracts[%d]", i)
+			if contract.Name == "" || contract.OperationID == "" {
+				add("invalid-test-contract", LintError, ref, field, "name and operation_id are required")
+			}
+			if contractNames[contract.Name] {
+				add("duplicate-test-contract", LintError, ref, field, "test contract name is duplicated")
+			}
+			contractNames[contract.Name] = true
+			if contract.Expect.Status < 100 || contract.Expect.Status > 599 {
+				add("invalid-test-status", LintError, ref, field, "expected status must be between 100 and 599")
+			}
+			if contract.Expect.ErrorCode != "" && !errorCodes[contract.Expect.ErrorCode] {
+				add("unknown-error-code", LintError, ref, field, fmt.Sprintf("error code %q is not registered", contract.Expect.ErrorCode))
 			}
 		}
 		for _, relation := range model.Relations {

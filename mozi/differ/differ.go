@@ -51,17 +51,17 @@ const (
 
 // AffectedFile represents a file that would be affected by the changes.
 type AffectedFile struct {
-	Path        string `json:"path"`
-	Description string `json:"description"`
-	ChangeCount int    `json:"change_count"`
-	Evidence EvidenceLevel `json:"evidence"`
+	Path        string        `json:"path"`
+	Description string        `json:"description"`
+	ChangeCount int           `json:"change_count"`
+	Evidence    EvidenceLevel `json:"evidence"`
 }
 
 type EvidenceLevel string
 
 const (
-	EvidenceCertain EvidenceLevel = "certain"
-	EvidenceInferred EvidenceLevel = "inferred"
+	EvidenceCertain   EvidenceLevel = "certain"
+	EvidenceInferred  EvidenceLevel = "inferred"
 	EvidenceSuggested EvidenceLevel = "suggested"
 )
 
@@ -355,6 +355,9 @@ func fieldDiffs(a, b mozi.FieldIR) []string {
 	if a.Label != b.Label {
 		diffs = append(diffs, "label")
 	}
+	if a.I18nKey != b.I18nKey {
+		diffs = append(diffs, "i18n_key")
+	}
 	if a.Required != b.Required {
 		diffs = append(diffs, "required")
 	}
@@ -391,6 +394,8 @@ func fieldAttr(f *mozi.FieldIR, attr string) string {
 		return string(f.Type)
 	case "label":
 		return f.Label
+	case "i18n_key":
+		return f.I18nKey
 	case "required":
 		return fmt.Sprintf("%v", f.Required)
 	case "unique":
@@ -679,7 +684,11 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 		}
 	}
 
-	for i := range files { if files[i].Evidence == "" { files[i].Evidence = EvidenceInferred } }
+	for i := range files {
+		if files[i].Evidence == "" {
+			files[i].Evidence = EvidenceInferred
+		}
+	}
 	return files
 }
 

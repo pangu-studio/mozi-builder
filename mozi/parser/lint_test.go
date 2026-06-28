@@ -47,6 +47,14 @@ func TestLintProjectValidatesErrorRegistryReferences(t *testing.T) {
 	}
 }
 
+func TestLintProjectValidatesPhase2Contracts(t *testing.T) {
+	project := &mozi.ProjectIR{SchemaVersion: 1, Modules: []*mozi.ModuleIR{{Name: "content", Models: []*mozi.ModelIR{{SchemaVersion: 1, Module: "content", Name: "Deck", Description: "deck", Semantics: mozi.SemanticConfig{Purpose: "deck", PermissionRules: []mozi.PermissionIR{{Effect: "allow", Principal: "user", Resource: "deck", Action: "read", Scope: "own"}}}, Fields: []mozi.FieldIR{{Name: "id", Label: "ID", Primary: true}, {Name: "created_at", Label: "Created"}, {Name: "updated_at", Label: "Updated"}}, APIIntent: mozi.APIIntentConfig{TestContracts: []mozi.TestContractIR{{Name: "bad", Expect: mozi.TestExpectationIR{Status: 0}}}}}}}}}
+	result := LintProject(project, LintOptions{})
+	if !hasLintCode(result, "missing-owner-field") || !hasLintCode(result, "invalid-test-contract") || !hasLintCode(result, "invalid-test-status") {
+		t.Fatalf("issues=%#v", result.Issues)
+	}
+}
+
 func hasLintCode(result *LintResult, code string) bool {
 	for _, issue := range result.Issues {
 		if issue.Code == code {

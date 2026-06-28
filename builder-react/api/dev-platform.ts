@@ -74,6 +74,7 @@ export interface FieldIR {
   name: string
   type: string // string | int | float | bool | time | text | enum | json
   label: string
+  i18n_key?: string
   required?: boolean
   unique?: boolean
   sensitive?: boolean
@@ -117,7 +118,19 @@ export interface SemanticConfig {
   user_value?: string
   business_rules?: string[]
   permissions?: string[]
+  permission_rules?: PermissionIR[]
   lifecycle?: string[]
+}
+
+export interface PermissionIR {
+  effect?: 'allow' | 'deny'
+  principal: string
+  resource: string
+  action: string
+  scope?: 'own' | 'group' | 'tenant' | 'all'
+  tenant_field?: string
+  owner_field?: string
+  condition?: string
 }
 
 export interface UIIntentConfig {
@@ -177,6 +190,15 @@ export interface APIIntentConfig {
   rate_limit?: string
   versioning?: string
   compatibility_notes?: string[]
+  test_contracts?: TestContractIR[]
+}
+
+export interface TestContractIR {
+  name: string
+  operation_id: string
+  scenario?: string
+  request?: { path?: Record<string, string>; query?: Record<string, string>; headers?: Record<string, string>; body?: Record<string, unknown> }
+  expect: { status: number; error_code?: string; body_contains?: Record<string, unknown> }
 }
 
 export const API_EXPOSURE_OPTIONS = [
