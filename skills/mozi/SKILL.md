@@ -1,4 +1,5 @@
 ---
+slug: mozi
 name: mozi
 displayName: Mozi 模型驱动开发
 version: 0.1.1

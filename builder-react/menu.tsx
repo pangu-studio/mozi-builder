@@ -2,6 +2,7 @@ import React from 'react'
 import {
   ApartmentOutlined,
   ApiOutlined,
+  WarningOutlined,
   NodeIndexOutlined,
   ReadOutlined,
   ToolOutlined,
@@ -16,6 +17,7 @@ export function createMoziBuilderMenuItem(routeBasePath = '/dev-platform') {
     children: [
       { key: `${basePath}/models`, icon: <ApartmentOutlined />, label: '模型管理' },
       { key: `${basePath}/apis`, icon: <ApiOutlined />, label: 'API Workbench' },
+      { key: `${basePath}/error-codes`, icon: <WarningOutlined />, label: '错误码管理' },
       { key: `${basePath}/er`, icon: <NodeIndexOutlined />, label: '实体关系图' },
       { key: `${basePath}/guide`, icon: <ReadOutlined />, label: '操作手册' },
     ],

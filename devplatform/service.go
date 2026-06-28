@@ -79,7 +79,30 @@ func (s *Service) SaveErrorCode(ctx context.Context, item mozi.ErrorCodeIR) erro
 }
 
 func (s *Service) DeleteErrorCode(ctx context.Context, code string) error {
-	return s.Store.DeleteErrorCode(strings.TrimSpace(code))
+	code = strings.TrimSpace(code)
+	project, err := s.Store.LoadProject()
+	if err != nil {
+		return fmt.Errorf("load project: %w", err)
+	}
+	var refs []string
+	for _, mod := range project.Modules {
+		for _, model := range mod.Models {
+			for _, item := range model.APIIntent.ErrorCodes {
+				if item == code {
+					refs = append(refs, mod.Name+"/"+model.Name+" api_intent.error_codes")
+				}
+			}
+			for _, contract := range model.APIIntent.TestContracts {
+				if contract.Expect.ErrorCode == code {
+					refs = append(refs, mod.Name+"/"+model.Name+" test_contracts."+contract.Name)
+				}
+			}
+		}
+	}
+	if len(refs) > 0 {
+		return fmt.Errorf("error code %s is still referenced by %s", code, strings.Join(refs, ", "))
+	}
+	return s.Store.DeleteErrorCode(code)
 }
 
 func isErrorCode(value string) bool {
