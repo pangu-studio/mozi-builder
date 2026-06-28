@@ -39,6 +39,14 @@ func TestRepositoryModelsPassDefaultLint(t *testing.T) {
 	}
 }
 
+func TestLintProjectValidatesErrorRegistryReferences(t *testing.T) {
+	project := &mozi.ProjectIR{SchemaVersion: 1, ErrorCodes: []mozi.ErrorCodeIR{{Code: "DECK_NOT_FOUND", HTTPStatus: 404, Category: "resource", Message: "missing", ConsumerFacing: true}}, Modules: []*mozi.ModuleIR{{Name: "content", Models: []*mozi.ModelIR{{SchemaVersion: 1, Module: "content", Name: "Deck", Description: "deck", Semantics: mozi.SemanticConfig{Purpose: "deck"}, Fields: []mozi.FieldIR{{Name: "id", Label: "ID", Primary: true}, {Name: "created_at"}, {Name: "updated_at"}}, APIIntent: mozi.APIIntentConfig{ErrorCodes: []string{"UNKNOWN"}}}}}}}
+	result := LintProject(project, LintOptions{})
+	if !hasLintCode(result, "unknown-error-code") {
+		t.Fatalf("issues = %#v", result.Issues)
+	}
+}
+
 func hasLintCode(result *LintResult, code string) bool {
 	for _, issue := range result.Issues {
 		if issue.Code == code {

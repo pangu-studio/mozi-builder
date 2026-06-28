@@ -21,6 +21,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
   api_intent: 'API 意图',
 }
 
+const COMPATIBILITY_CONFIG: Record<string, { color: string; label: string }> = {
+  safe: { color: 'green', label: '安全' }, conditional: { color: 'orange', label: '需条件' }, breaking: { color: 'red', label: '破坏性' }, unknown: { color: 'default', label: '未知' },
+}
+
 // ChangeCountBadges renders the compact "+N -N ~N" summary used in version rows.
 export const ChangeCountBadges: React.FC<{ summary?: DiffSummary | null }> = ({ summary }) => {
   if (!summary || !summary.has_changes) {
@@ -53,6 +57,7 @@ export const ChangeItem: React.FC<{ change: DiffChange; last?: boolean }> = ({ c
       <div style={{ flex: 1 }}>
         <div style={{ marginBottom: 4 }}>
           <Tag style={{ fontSize: 11 }}>{CATEGORY_LABELS[change.category] || change.category}</Tag>
+          {change.compatibility && <Tag color={(COMPATIBILITY_CONFIG[change.compatibility] || COMPATIBILITY_CONFIG.unknown).color}>{(COMPATIBILITY_CONFIG[change.compatibility] || COMPATIBILITY_CONFIG.unknown).label}</Tag>}
           <Text strong>{change.name}</Text>
         </div>
         <Text type="secondary" style={{ fontSize: 13 }}>

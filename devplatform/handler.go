@@ -267,6 +267,39 @@ func (h *Handler) SaveAPIEndpointOverride(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "saved", "endpoint_id": input.EndpointID})
 }
 
+func (h *Handler) ListErrorCodes(c *gin.Context) {
+	items, err := h.svc.ListErrorCodes(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+func (h *Handler) SaveErrorCode(c *gin.Context) {
+	var item mozi.ErrorCodeIR
+	if err := c.ShouldBindJSON(&item); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if code := c.Param("code"); code != "" {
+		item.Code = code
+	}
+	if err := h.svc.SaveErrorCode(c.Request.Context(), item); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, item)
+}
+
+func (h *Handler) DeleteErrorCode(c *gin.Context) {
+	if err := h.svc.DeleteErrorCode(c.Request.Context(), c.Param("code")); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
 // ListDesignDictionaryItems returns business-maintained dictionary options.
 func (h *Handler) ListDesignDictionaryItems(c *gin.Context) {
 	dictionaryID := c.Param("dictionary")

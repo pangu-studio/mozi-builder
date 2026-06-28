@@ -22,6 +22,33 @@ type Store struct {
 	DB *sql.DB
 }
 
+func (s *Store) ListErrorCodes() ([]mozi.ErrorCodeIR, error) {
+	rows, err := s.DB.Query(`SELECT code, domain, http_status, category, message, consumer_facing, retryable, details_schema, i18n_key, deprecated FROM error_codes ORDER BY domain, code`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var result []mozi.ErrorCodeIR
+	for rows.Next() {
+		var item mozi.ErrorCodeIR
+		if err := rows.Scan(&item.Code, &item.Domain, &item.HTTPStatus, &item.Category, &item.Message, &item.ConsumerFacing, &item.Retryable, &item.DetailsSchema, &item.I18nKey, &item.Deprecated); err != nil {
+			return nil, err
+		}
+		result = append(result, item)
+	}
+	return result, rows.Err()
+}
+
+func (s *Store) UpsertErrorCode(item mozi.ErrorCodeIR) error {
+	_, err := s.DB.Exec(`INSERT INTO error_codes (code, domain, http_status, category, message, consumer_facing, retryable, details_schema, i18n_key, deprecated) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) ON CONFLICT (code) DO UPDATE SET domain=EXCLUDED.domain,http_status=EXCLUDED.http_status,category=EXCLUDED.category,message=EXCLUDED.message,consumer_facing=EXCLUDED.consumer_facing,retryable=EXCLUDED.retryable,details_schema=EXCLUDED.details_schema,i18n_key=EXCLUDED.i18n_key,deprecated=EXCLUDED.deprecated,updated_at=CURRENT_TIMESTAMP`, item.Code, item.Domain, item.HTTPStatus, item.Category, item.Message, item.ConsumerFacing, item.Retryable, item.DetailsSchema, item.I18nKey, item.Deprecated)
+	return err
+}
+
+func (s *Store) DeleteErrorCode(code string) error {
+	_, err := s.DB.Exec(`DELETE FROM error_codes WHERE code=$1`, code)
+	return err
+}
+
 // NewStore creates a new Store.
 func NewStore(db *sql.DB) *Store {
 	return &Store{DB: db}
@@ -741,6 +768,7 @@ func (s *Store) LoadProject() (*mozi.ProjectIR, error) {
 	}
 
 	project := &mozi.ProjectIR{SchemaVersion: mozi.CurrentSchemaVersion, Name: "memflow-cloud"}
+	project.ErrorCodes, _ = s.ListErrorCodes()
 
 	for _, mod := range mods {
 		modelIDs, err := s.ListModelsByModule(mod.Name)

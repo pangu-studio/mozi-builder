@@ -172,6 +172,7 @@ export interface APIIntentConfig {
   request_notes?: string[]
   response_notes?: string[]
   error_cases?: string[]
+  error_codes?: string[]
   idempotency?: string
   rate_limit?: string
   versioning?: string
@@ -298,6 +299,7 @@ export interface DiffChange {
   detail: string
   old_value?: string
   new_value?: string
+  compatibility: 'safe' | 'conditional' | 'breaking' | 'unknown'
 }
 
 // Compact diff view persisted per version (model_versions.diff_summary).
@@ -315,6 +317,24 @@ export interface AffectedFile {
   path: string
   description: string
   change_count: number
+  evidence: 'certain' | 'inferred' | 'suggested'
+}
+
+export interface MigrationStep {
+  kind: string
+  risk: 'safe' | 'conditional' | 'dangerous'
+  description: string
+  sql?: string
+  reversible: boolean
+  requires_confirmation: boolean
+}
+
+export interface MigrationPlan {
+  dialect: string
+  model_ref: string
+  table: string
+  steps: MigrationStep[]
+  has_dangerous: boolean
 }
 
 export interface DiffResult {
@@ -346,6 +366,21 @@ export interface ChangePlanResult {
   tasks: ChangePlanTask[]
   checks: string[]
   prompt: string
+  migration: MigrationPlan
+  requires_approval: boolean
+}
+
+export interface ErrorCodeIR {
+  code: string
+  domain?: string
+  http_status: number
+  category: string
+  message: string
+  consumer_facing: boolean
+  retryable: boolean
+  details_schema?: string
+  i18n_key?: string
+  deprecated?: boolean
 }
 
 export type APISurface = 'admin' | 'miniapp' | 'desktop' | 'client-shared' | 'internal' | 'public'
@@ -438,6 +473,18 @@ export interface DesignDictionaryItem {
 // 模型列表
 export function listModels() {
   return getMoziBuilderApiClient().get<ModuleSummary[]>(builderPath('/models'))
+}
+
+export function listErrorCodes() {
+  return getMoziBuilderApiClient().get<ErrorCodeIR[]>(builderPath('/error-codes'))
+}
+
+export function saveErrorCode(item: ErrorCodeIR) {
+  return getMoziBuilderApiClient().post<ErrorCodeIR>(builderPath('/error-codes'), item)
+}
+
+export function deleteErrorCode(code: string) {
+  return getMoziBuilderApiClient().delete(builderPath(`/error-codes/${encodeURIComponent(code)}`))
 }
 
 // 创建模块

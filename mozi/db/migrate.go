@@ -24,17 +24,42 @@ func Migrate(db *sql.DB) error {
 	if err := migrateV5ModelVersionDiffSummary(db); err != nil {
 		return err
 	}
-		if err := migrateV6UiSurfacesDictionary(db); err != nil {
-			return err
-		}
-		return nil
+	if err := migrateV6UiSurfacesDictionary(db); err != nil {
+		return err
 	}
+	if err := migrateV7ErrorCodes(db); err != nil {
+		return err
+	}
+	return nil
+}
 
-	// migrateV6UiSurfacesDictionary seeds the ui_surfaces design dictionary and adds
-	// a CLI consumer to the api_consumers dictionary.
-	func migrateV6UiSurfacesDictionary(db *sql.DB) error {
-		// Seed the ui_surfaces dictionary.
-		if _, err := db.Exec(`
+func migrateV7ErrorCodes(db *sql.DB) error {
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS error_codes (
+			code TEXT PRIMARY KEY,
+			domain TEXT DEFAULT '',
+			http_status INT NOT NULL,
+			category TEXT NOT NULL,
+			message TEXT NOT NULL,
+			consumer_facing BOOLEAN DEFAULT FALSE,
+			retryable BOOLEAN DEFAULT FALSE,
+			details_schema TEXT DEFAULT '',
+			i18n_key TEXT DEFAULT '',
+			deprecated BOOLEAN DEFAULT FALSE,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("create error_codes: %w", err)
+	}
+	return nil
+}
+
+// migrateV6UiSurfacesDictionary seeds the ui_surfaces design dictionary and adds
+// a CLI consumer to the api_consumers dictionary.
+func migrateV6UiSurfacesDictionary(db *sql.DB) error {
+	// Seed the ui_surfaces dictionary.
+	if _, err := db.Exec(`
 			INSERT INTO design_dictionaries (id, label, description)
 			VALUES ('ui_surfaces', 'UI 端侧', '按当前业务维护 UI 意图中可用的产品端侧选项')
 			ON CONFLICT (id) DO UPDATE SET
@@ -42,44 +67,43 @@ func Migrate(db *sql.DB) error {
 				description = EXCLUDED.description,
 				updated_at = CURRENT_TIMESTAMP
 		`); err != nil {
-			return fmt.Errorf("seed ui_surfaces dictionary: %w", err)
-		}
+		return fmt.Errorf("seed ui_surfaces dictionary: %w", err)
+	}
 
-		defaultSurfaces := []struct {
-			value       string
-			label       string
-			description string
-			aliases     string
-			sortOrder   int
-		}{
-			{"admin", "管理后台", "高密度管理、运营检索、批量操作", `["后台","admin_console"]`, 10},
-			{"desktop", "桌面客户端", "离线、本地数据、快捷键、复习入口", `["桌面端","tauri","客户端"]`, 20},
-			{"miniapp", "小程序", "轻量路径、单手操作、弱网和移动端限制", `["微信小程序","小程序端","wechat_miniapp"]`, 30},
-			{"cli", "命令行 / CLI（AI Agent 调用）", "命令行命令 + skill，机器可读输出、幂等、可脚本化", `["cli","skill","agent","ai_agent"]`, 40},
-		}
-		for _, item := range defaultSurfaces {
-			if _, err := db.Exec(`
+	defaultSurfaces := []struct {
+		value       string
+		label       string
+		description string
+		aliases     string
+		sortOrder   int
+	}{
+		{"admin", "管理后台", "高密度管理、运营检索、批量操作", `["后台","admin_console"]`, 10},
+		{"desktop", "桌面客户端", "离线、本地数据、快捷键、复习入口", `["桌面端","tauri","客户端"]`, 20},
+		{"miniapp", "小程序", "轻量路径、单手操作、弱网和移动端限制", `["微信小程序","小程序端","wechat_miniapp"]`, 30},
+		{"cli", "命令行 / CLI（AI Agent 调用）", "命令行命令 + skill，机器可读输出、幂等、可脚本化", `["cli","skill","agent","ai_agent"]`, 40},
+	}
+	for _, item := range defaultSurfaces {
+		if _, err := db.Exec(`
 				INSERT INTO design_dictionary_items (dictionary_id, value, label, description, aliases, sort_order, enabled)
 				VALUES ('ui_surfaces', $1, $2, $3, $4, $5, TRUE)
 				ON CONFLICT (dictionary_id, value) DO NOTHING
 			`, item.value, item.label, item.description, item.aliases, item.sortOrder); err != nil {
-				return fmt.Errorf("seed ui_surfaces item %s: %w", item.value, err)
-			}
+			return fmt.Errorf("seed ui_surfaces item %s: %w", item.value, err)
 		}
+	}
 
-		// Also seed the CLI consumer into api_consumers so API intent can mark
-		// endpoints consumed by the desktop CLI / AI agent.
-		if _, err := db.Exec(`
+	// Also seed the CLI consumer into api_consumers so API intent can mark
+	// endpoints consumed by the desktop CLI / AI agent.
+	if _, err := db.Exec(`
 			INSERT INTO design_dictionary_items (dictionary_id, value, label, aliases, sort_order, enabled)
 			VALUES ('api_consumers', 'cli', '桌面端 CLI / AI Agent（CLI + Skill）', $1, 45, TRUE)
 			ON CONFLICT (dictionary_id, value) DO NOTHING
 		`, `["cli","ai_agent","skill","command_line"]`); err != nil {
-			return fmt.Errorf("seed api_consumers item cli: %w", err)
-		}
+		return fmt.Errorf("seed api_consumers item cli: %w", err)
+	}
 
-		return nil
+	return nil
 }
-
 
 // migrateV1 creates the initial schema.
 func migrateV1(db *sql.DB) error {

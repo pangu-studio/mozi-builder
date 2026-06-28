@@ -18,6 +18,7 @@ import {
   Drawer,
   Descriptions,
   Empty,
+  List,
 } from 'antd'
 import dayjs from 'dayjs'
 import {
@@ -37,7 +38,7 @@ import { useDevPlatformStore } from '../stores/dev-platform'
 import { getModel, getModelHistory } from '../api/dev-platform'
 import type { FieldIR, ModelIR, ModelSummary, ModelVersionInfo, ModuleSummary, RelationIR, UIIntentConfig, UISurfaceIntentConfig, UISurfaceViewConfig } from '../api/dev-platform'
 import { ChangeCountBadges, ChangeList } from '../diffShared'
-import { useMoziBuilder } from '..'
+import { useMoziBuilder } from '../MoziBuilderProvider'
 import { useUiSurfaces } from '../hooks/useUiSurfaces'
 import IconSelect from '../components/IconSelect'
 
@@ -749,15 +750,48 @@ const ModelOverview: React.FC = () => {
       </Card>
 
       {/* 模型列表 */}
-      <Card title={`模型列表（${filteredModels.length}）${selectedModule ? ` / ${selectedModule}` : ''}`}>
-        <Table
-          columns={columns}
-          dataSource={filteredModels}
+      <Card title={`模型卡片（${filteredModels.length}）${selectedModule ? ` / ${selectedModule}` : ''}`}>
+        <List
           loading={loading}
-          rowKey={(r) => `${r._module}/${r.name}`}
-          size="middle"
-          pagination={false}
+          grid={{ gutter: 16, xs: 1, sm: 1, md: 2, xl: 3 }}
+          dataSource={filteredModels}
           locale={{ emptyText: '暂无模型，建议先通过 AI agent 对话建模，或点击右上角"补录模型"' }}
+          renderItem={(record) => {
+            const status = SYNC_STATUS_MAP[record.sync_status] || { color: 'default', label: record.sync_status }
+            return (
+              <List.Item key={`${record._module}/${record.name}`}>
+                <Card
+                  size="small"
+                  title={<Space><Text strong>{record.label}</Text><Text code>{record.name}</Text></Space>}
+                  extra={<Tag color={status.color}>{status.label}</Tag>}
+                  actions={[
+                    <EyeOutlined key="view" onClick={() => handleViewDetail(record)} />,
+                    <EditOutlined key="edit" onClick={() => navigate(buildRoute(`/modules/${record._module}/models/${record.name}`))} />,
+                    record.sync_status === 'synced'
+                      ? <CheckCircleOutlined key="synced" style={{ color: '#52c41a' }} />
+                      : <DiffOutlined key="diff" onClick={() => navigate(buildRoute(`/modules/${record._module}/models/${record.name}/diff`))} />,
+                    <HistoryOutlined key="history" onClick={() => handleViewHistory(record)} />,
+                  ]}
+                >
+                  <Space direction="vertical" size={10} style={{ width: '100%' }}>
+                    <Text type="secondary" ellipsis={{ tooltip: record.description }}>{record.description || '暂无业务描述'}</Text>
+                    <Space wrap>
+                      <Tag color="blue">{record._module}</Tag>
+                      <Tag>{record.field_count} 字段</Tag>
+                      <Tag>{record.rel_count} 关系</Tag>
+                      <Text code>{record.table}</Text>
+                    </Space>
+                    <Text type="secondary">版本：{formatVersionTime(record.version)}</Text>
+                    <Space>
+                      <Button size="small" onClick={() => handleViewDetail(record)}>查看语义</Button>
+                      <Button size="small" onClick={() => navigate(buildRoute(`/modules/${record._module}/models/${record.name}`))}>编辑模型</Button>
+                      {record.sync_status !== 'synced' && <Button size="small" type="primary" onClick={() => navigate(buildRoute(`/modules/${record._module}/models/${record.name}/diff`))}>AI 变更计划</Button>}
+                    </Space>
+                  </Space>
+                </Card>
+              </List.Item>
+            )
+          }}
         />
       </Card>
 

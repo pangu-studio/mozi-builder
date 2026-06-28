@@ -46,6 +46,27 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 	if project.SchemaVersion != mozi.CurrentSchemaVersion {
 		add("unsupported-schema-version", LintError, "project", "schema_version", fmt.Sprintf("schema version %d is not supported; current version is %d", project.SchemaVersion, mozi.CurrentSchemaVersion))
 	}
+	errorCodes := map[string]bool{}
+	validCategories := map[string]bool{"resource": true, "validation": true, "permission": true, "business": true, "system": true, "rate_limit": true, "auth": true}
+	for _, item := range project.ErrorCodes {
+		if item.Code == "" {
+			add("invalid-error-code", LintError, "project", "error_codes", "error code is required")
+			continue
+		}
+		if errorCodes[item.Code] {
+			add("duplicate-error-code", LintError, "project", item.Code, "error code is duplicated")
+		}
+		errorCodes[item.Code] = true
+		if item.HTTPStatus < 400 || item.HTTPStatus > 599 {
+			add("invalid-error-status", LintError, "project", item.Code, "http_status must be between 400 and 599")
+		}
+		if !validCategories[item.Category] {
+			add("invalid-error-category", LintError, "project", item.Code, "unknown error category")
+		}
+		if item.ConsumerFacing && strings.TrimSpace(item.Message) == "" {
+			add("missing-error-message", LintError, "project", item.Code, "consumer-facing error requires a message")
+		}
+	}
 	modelRefs := map[string]*mozi.ModelIR{}
 	modules := map[string]bool{}
 	for _, mod := range project.Modules {
@@ -88,6 +109,11 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 		}
 		if !hasCreated || !hasUpdated {
 			add("missing-timestamps", LintInfo, ref, "", "model does not define both created_at and updated_at")
+		}
+		for _, code := range model.APIIntent.ErrorCodes {
+			if !errorCodes[code] {
+				add("unknown-error-code", LintError, ref, "api_intent.error_codes", fmt.Sprintf("error code %q is not registered", code))
+			}
 		}
 		for _, relation := range model.Relations {
 			target := relation.TargetModule + "/" + relation.TargetModel

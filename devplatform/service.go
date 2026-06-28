@@ -18,6 +18,7 @@ import (
 	"github.com/pangu-studio/mozi-builder/mozi/differ"
 	"github.com/pangu-studio/mozi-builder/mozi/generator"
 	"github.com/pangu-studio/mozi-builder/mozi/manifest"
+	"github.com/pangu-studio/mozi-builder/mozi/migration"
 	"github.com/pangu-studio/mozi-builder/mozi/parser"
 
 	"gopkg.in/yaml.v3"
@@ -50,6 +51,44 @@ type DesignDictionaryItemInput struct {
 	Aliases     []string `json:"aliases"`
 	SortOrder   int      `json:"sort_order"`
 	Enabled     *bool    `json:"enabled"`
+}
+
+func (s *Service) ListErrorCodes(ctx context.Context) ([]mozi.ErrorCodeIR, error) {
+	return s.Store.ListErrorCodes()
+}
+
+func (s *Service) SaveErrorCode(ctx context.Context, item mozi.ErrorCodeIR) error {
+	item.Code = strings.TrimSpace(item.Code)
+	item.Domain = strings.TrimSpace(item.Domain)
+	item.Category = strings.TrimSpace(item.Category)
+	item.Message = strings.TrimSpace(item.Message)
+	if item.Code == "" || !isErrorCode(item.Code) {
+		return fmt.Errorf("error code must use uppercase letters, numbers, and underscores")
+	}
+	if item.HTTPStatus < 400 || item.HTTPStatus > 599 {
+		return fmt.Errorf("http_status must be between 400 and 599")
+	}
+	valid := map[string]bool{"resource": true, "validation": true, "permission": true, "business": true, "system": true, "rate_limit": true, "auth": true}
+	if !valid[item.Category] {
+		return fmt.Errorf("invalid error category %q", item.Category)
+	}
+	if item.ConsumerFacing && item.Message == "" {
+		return fmt.Errorf("consumer-facing error requires a message")
+	}
+	return s.Store.UpsertErrorCode(item)
+}
+
+func (s *Service) DeleteErrorCode(ctx context.Context, code string) error {
+	return s.Store.DeleteErrorCode(strings.TrimSpace(code))
+}
+
+func isErrorCode(value string) bool {
+	for _, r := range value {
+		if (r < 'A' || r > 'Z') && (r < '0' || r > '9') && r != '_' {
+			return false
+		}
+	}
+	return value != ""
 }
 
 // ============================================================================
@@ -530,20 +569,22 @@ const (
 // ChangePlanResult describes a model change as an AI Coding task instead of a
 // template overwrite operation.
 type ChangePlanResult struct {
-	ModelRef      string                `json:"model_ref"`
-	Status        ChangePlanStatus      `json:"status"`
-	Intent        string                `json:"intent"`
-	ModuleIcon    string                `json:"module_icon,omitempty"`
-	ModelIcon     string                `json:"model_icon,omitempty"`
-	Semantics     mozi.SemanticConfig   `json:"semantics"`
-	UIIntent      mozi.UIIntentConfig   `json:"ui_intent"`
-	APIIntent     mozi.APIIntentConfig  `json:"api_intent"`
-	Diff          *differ.DiffResult    `json:"diff"`
-	AffectedFiles []differ.AffectedFile `json:"affected_files"`
-	Contracts     []string              `json:"contracts"`
-	Tasks         []ChangePlanTask      `json:"tasks"`
-	Checks        []string              `json:"checks"`
-	Prompt        string                `json:"prompt"`
+	ModelRef         string                `json:"model_ref"`
+	Status           ChangePlanStatus      `json:"status"`
+	Intent           string                `json:"intent"`
+	ModuleIcon       string                `json:"module_icon,omitempty"`
+	ModelIcon        string                `json:"model_icon,omitempty"`
+	Semantics        mozi.SemanticConfig   `json:"semantics"`
+	UIIntent         mozi.UIIntentConfig   `json:"ui_intent"`
+	APIIntent        mozi.APIIntentConfig  `json:"api_intent"`
+	Diff             *differ.DiffResult    `json:"diff"`
+	AffectedFiles    []differ.AffectedFile `json:"affected_files"`
+	Contracts        []string              `json:"contracts"`
+	Tasks            []ChangePlanTask      `json:"tasks"`
+	Checks           []string              `json:"checks"`
+	Migration        migration.Plan        `json:"migration"`
+	RequiresApproval bool                  `json:"requires_approval"`
+	Prompt           string                `json:"prompt"`
 }
 
 // ChangePlanTask is one actionable item in the AI Coding plan.
@@ -585,6 +626,10 @@ func (s *Service) ChangePlan(ctx context.Context, modelName string) (*ChangePlan
 		moduleIcon = strings.TrimSpace(mod.Icon)
 	}
 	affectedFiles := diff.AffectedFiles()
+	previous := &mozi.ModelIR{Module: model.Module, Name: model.Name, Table: model.Table}
+	if diff.FromVersion != "" {
+		previous = s.loadModelVersionForDiff(modelID, diff.FromVersion, model)
+	}
 	result := &ChangePlanResult{
 		ModelRef:      modelRef,
 		Status:        status,
@@ -599,9 +644,23 @@ func (s *Service) ChangePlan(ctx context.Context, modelName string) (*ChangePlan
 		Contracts:     buildContracts(status),
 		Tasks:         buildChangeTasks(model, diff, affectedFiles, status),
 		Checks:        buildChangeChecks(diff, status),
+		Migration:     migration.Advise(previous, model, diff),
 	}
+	result.RequiresApproval = result.Migration.HasDangerous || hasBreakingChange(diff)
 	result.Prompt = buildChangePrompt(result)
 	return result, nil
+}
+
+func hasBreakingChange(diff *differ.DiffResult) bool {
+	if diff == nil {
+		return false
+	}
+	for _, change := range diff.Changes {
+		if change.Compatibility == differ.CompatibilityBreaking {
+			return true
+		}
+	}
+	return false
 }
 
 // SyncModel records the current model version in the manifest so that future
@@ -951,6 +1010,7 @@ func (s *Service) loadModelVersionForDiff(modelName string, version string, curr
 func buildChangeChecks(diff *differ.DiffResult, status ChangePlanStatus) []string {
 	checks := []string{
 		"mozi validate",
+		"mozi lint --strict",
 	}
 	if status == ChangePlanApplied {
 		checks = append(checks,
@@ -990,6 +1050,17 @@ func buildChangePrompt(plan *ChangePlanResult) string {
 		b.WriteString("Likely affected files:\n")
 		for _, file := range plan.AffectedFiles {
 			fmt.Fprintf(&b, "- [%s] %s: %s\n", file.Evidence, file.Path, file.Description)
+		}
+		b.WriteString("\n")
+	}
+	if len(plan.Migration.Steps) > 0 {
+		b.WriteString("Database migration advice (review only; never execute automatically):\n")
+		for _, step := range plan.Migration.Steps {
+			fmt.Fprintf(&b, "- [%s] %s", step.Risk, step.Description)
+			if step.SQL != "" {
+				fmt.Fprintf(&b, " — `%s`", step.SQL)
+			}
+			b.WriteString("\n")
 		}
 		b.WriteString("\n")
 	}

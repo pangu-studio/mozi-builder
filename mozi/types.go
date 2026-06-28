@@ -17,7 +17,21 @@ type ProjectIR struct {
 	Module        string         `yaml:"module" json:"module"` // Go module path
 	Backend       BackendConfig  `yaml:"backend" json:"backend"`
 	Frontend      FrontendConfig `yaml:"frontend" json:"frontend"`
+	ErrorCodes    []ErrorCodeIR  `yaml:"error_codes,omitempty" json:"error_codes,omitempty"`
 	Modules       []*ModuleIR    `json:"modules"`
+}
+
+type ErrorCodeIR struct {
+	Code           string `yaml:"code" json:"code"`
+	Domain         string `yaml:"domain,omitempty" json:"domain,omitempty"`
+	HTTPStatus     int    `yaml:"http_status" json:"http_status"`
+	Category       string `yaml:"category" json:"category"`
+	Message        string `yaml:"message" json:"message"`
+	ConsumerFacing bool   `yaml:"consumer_facing" json:"consumer_facing"`
+	Retryable      bool   `yaml:"retryable" json:"retryable"`
+	DetailsSchema  string `yaml:"details_schema,omitempty" json:"details_schema,omitempty"`
+	I18nKey        string `yaml:"i18n_key,omitempty" json:"i18n_key,omitempty"`
+	Deprecated     bool   `yaml:"deprecated,omitempty" json:"deprecated,omitempty"`
 }
 
 // BackendConfig holds backend framework configuration.
@@ -228,6 +242,7 @@ type APIIntentConfig struct {
 	RequestNotes       []string `yaml:"request_notes,omitempty" json:"request_notes,omitempty"`
 	ResponseNotes      []string `yaml:"response_notes,omitempty" json:"response_notes,omitempty"`
 	ErrorCases         []string `yaml:"error_cases,omitempty" json:"error_cases,omitempty"`
+	ErrorCodes         []string `yaml:"error_codes,omitempty" json:"error_codes,omitempty"`
 	Idempotency        string   `yaml:"idempotency,omitempty" json:"idempotency,omitempty"`
 	RateLimit          string   `yaml:"rate_limit,omitempty" json:"rate_limit,omitempty"`
 	Versioning         string   `yaml:"versioning,omitempty" json:"versioning,omitempty"`

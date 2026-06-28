@@ -86,6 +86,11 @@ func importDirModels(store *db.Store, dir string) error {
 	if err != nil {
 		return fmt.Errorf("parse project: %w", err)
 	}
+	for _, item := range project.ErrorCodes {
+		if err := store.UpsertErrorCode(item); err != nil {
+			return fmt.Errorf("upsert error code %s: %w", item.Code, err)
+		}
+	}
 
 	total := 0
 	for _, mod := range project.Modules {

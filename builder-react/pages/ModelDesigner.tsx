@@ -34,7 +34,7 @@ import RelationEditor from '../components/RelationEditor'
 import ModelYamlPreview from '../components/ModelYamlPreview'
 import IconSelect from '../components/IconSelect'
 import { useDevPlatformStore } from '../stores/dev-platform'
-import { useMoziBuilder } from '..'
+import { useMoziBuilder } from '../MoziBuilderProvider'
 import { useUiSurfaces } from '../hooks/useUiSurfaces'
 import {
   API_AUTH_OPTIONS,

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Typography, theme } from 'antd'
-import { useMoziBuilder } from '..'
+import { useMoziBuilder } from '../MoziBuilderProvider'
 
 const { Title, Text } = Typography
 

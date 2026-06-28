@@ -16,7 +16,7 @@ import dayjs from 'dayjs'
 import { ArrowLeftOutlined, CodeOutlined, ReloadOutlined, CheckCircleFilled } from '@ant-design/icons'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDevPlatformStore } from '../stores/dev-platform'
-import { useMoziBuilder } from '..'
+import { useMoziBuilder } from '../MoziBuilderProvider'
 import { ChangeItem } from '../diffShared'
 
 const { Text, Paragraph } = Typography
@@ -173,6 +173,7 @@ const DiffViewer: React.FC = () => {
               <Tag color="red">- {removedCount} 删除</Tag>
               <Tag color="orange">~ {modifiedCount} 修改</Tag>
             </Space>
+            {changePlan?.requires_approval && <Alert type="warning" showIcon title="该计划包含破坏性或危险变更，应用前必须人工审批" style={{ marginTop: 12 }} />}
           </Card>
 
           <div style={{ display: 'flex', gap: 16 }}>
@@ -254,6 +255,7 @@ const DiffViewer: React.FC = () => {
                           {file.description}
                         </Text>
                         <Tag style={{ fontSize: 10, lineHeight: '16px' }}>{file.change_count} 处变更</Tag>
+                        <Tag color={file.evidence === 'certain' ? 'green' : file.evidence === 'suggested' ? 'purple' : 'orange'}>{file.evidence === 'certain' ? '确定' : file.evidence === 'suggested' ? 'AI 建议' : '规则推断'}</Tag>
                       </Space>
                     </div>
                   ))
@@ -266,6 +268,18 @@ const DiffViewer: React.FC = () => {
 
               {changePlan && (
                 <>
+                  {changePlan.migration?.steps?.length > 0 && (
+                    <Card size="small" title="数据库迁移建议" style={{ marginBottom: 16 }}>
+                      {changePlan.migration.has_dangerous && <Alert type="error" showIcon title="包含不可逆或数据丢失风险，禁止自动执行" style={{ marginBottom: 8 }} />}
+                      {changePlan.migration.steps.map((step, i) => (
+                        <div key={i} style={{ padding: '8px 0', borderBottom: i < changePlan.migration.steps.length - 1 ? '1px solid #f0f0f0' : 'none' }}>
+                          <Tag color={step.risk === 'safe' ? 'green' : step.risk === 'dangerous' ? 'red' : 'orange'}>{step.risk}</Tag>
+                          <Text>{step.description}</Text>
+                          {step.sql && <Paragraph copyable={{ text: step.sql }} style={{ margin: '6px 0 0' }}><Text code>{step.sql}</Text></Paragraph>}
+                        </div>
+                      ))}
+                    </Card>
+                  )}
                   <Card size="small" title="执行任务" style={{ marginBottom: 16 }}>
                     {changePlan.tasks.map((task, i) => (
                       <div

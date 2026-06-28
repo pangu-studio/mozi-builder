@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"github.com/pangu-studio/mozi-builder/mozi"
 	"github.com/pangu-studio/mozi-builder/mozi/db"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -61,6 +63,11 @@ func runExport(cmd *cobra.Command, args []string) error {
 		}
 		outDir = resolveModelsDir(projectRoot)
 	}
+	if exportModel == "" && genModule == "" {
+		if err := writeProjectYAML(outDir, project); err != nil {
+			return err
+		}
+	}
 
 	// Filter modules if specified
 	modules := project.Modules
@@ -111,6 +118,28 @@ func runExport(cmd *cobra.Command, args []string) error {
 	}
 
 	fmt.Printf("\n✅ Exported %d model(s) to %s\n", total, outDir)
+	return nil
+}
+
+func writeProjectYAML(outDir string, project *mozi.ProjectIR) error {
+	if err := os.MkdirAll(outDir, 0755); err != nil {
+		return err
+	}
+	payload := struct {
+		SchemaVersion int                 `yaml:"schema_version"`
+		Name          string              `yaml:"name"`
+		Module        string              `yaml:"module,omitempty"`
+		Backend       mozi.BackendConfig  `yaml:"backend,omitempty"`
+		Frontend      mozi.FrontendConfig `yaml:"frontend,omitempty"`
+		ErrorCodes    []mozi.ErrorCodeIR  `yaml:"error_codes,omitempty"`
+	}{project.SchemaVersion, project.Name, project.Module, project.Backend, project.Frontend, project.ErrorCodes}
+	data, err := yaml.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshal _project.yaml: %w", err)
+	}
+	if err := os.WriteFile(filepath.Join(outDir, "_project.yaml"), data, 0644); err != nil {
+		return fmt.Errorf("write _project.yaml: %w", err)
+	}
 	return nil
 }
 
@@ -176,6 +205,13 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 			sb.WriteString(fmt.Sprintf("  empty_state: %q\n", model.UIIntent.EmptyState))
 		}
 		writeYAMLStringList(&sb, "interaction_notes", model.UIIntent.InteractionNotes)
+	}
+	if !reflect.DeepEqual(model.APIIntent, mozi.APIIntentConfig{}) {
+		data, _ := yaml.Marshal(model.APIIntent)
+		sb.WriteString("\napi_intent:\n")
+		for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+			sb.WriteString("  " + line + "\n")
+		}
 	}
 
 	// Fields
