@@ -982,14 +982,14 @@ func buildChangePrompt(plan *ChangePlanResult) string {
 	if plan.Diff != nil && len(plan.Diff.Changes) > 0 {
 		b.WriteString("Model changes:\n")
 		for _, change := range plan.Diff.Changes {
-			fmt.Fprintf(&b, "- %s\n", change.Detail)
+			fmt.Fprintf(&b, "- [%s] %s\n", change.Compatibility, change.Detail)
 		}
 		b.WriteString("\n")
 	}
 	if len(plan.AffectedFiles) > 0 {
 		b.WriteString("Likely affected files:\n")
 		for _, file := range plan.AffectedFiles {
-			fmt.Fprintf(&b, "- %s: %s\n", file.Path, file.Description)
+			fmt.Fprintf(&b, "- [%s] %s: %s\n", file.Evidence, file.Path, file.Description)
 		}
 		b.WriteString("\n")
 	}

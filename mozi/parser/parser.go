@@ -65,6 +65,9 @@ func ParseProject(dir string) (*mozi.ProjectIR, error) {
 }
 
 func applyProjectDefaults(p *mozi.ProjectIR) {
+	if p.SchemaVersion == 0 {
+		p.SchemaVersion = mozi.CurrentSchemaVersion
+	}
 	if p.Name == "" {
 		p.Name = filepath.Base(".")
 	}
@@ -193,6 +196,9 @@ func NormalizeModel(model *mozi.ModelIR, moduleName string) {
 }
 
 func applyModelDefaults(model *mozi.ModelIR) {
+	if model.SchemaVersion == 0 {
+		model.SchemaVersion = mozi.CurrentSchemaVersion
+	}
 	// Default table name from model name (snake_case)
 	if model.Table == "" {
 		model.Table = toSnakeCase(model.Name) + "s"

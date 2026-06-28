@@ -92,7 +92,7 @@ fields:
   - name: role
     type: json
     label: 角色
-    default: "["user"]"
+    default: '["user"]'
     enum_values: [admin, user, builder]
     form_type: select
   - name: login_type
@@ -117,6 +117,12 @@ fields:
     auto_now: true
 
 relations:
+  - name: groups
+    label: 拥有
+    type: has_many
+    target: content/Group
+    back_ref: user
+    cascade: true
   - name: decks
     label: 拥有
     type: has_many

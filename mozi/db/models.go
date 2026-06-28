@@ -677,14 +677,15 @@ func (s *Store) LoadModel(modelID string) (*mozi.ModelIR, error) {
 	}
 
 	return &mozi.ModelIR{
-		Module:      moduleID,
-		Name:        modelIDOut,
-		Label:       label,
-		Description: desc,
-		Table:       tableName,
-		Fields:      fields,
-		Relations:   relations,
-		Admin:       *admin,
+		SchemaVersion: mozi.CurrentSchemaVersion,
+		Module:        moduleID,
+		Name:          modelIDOut,
+		Label:         label,
+		Description:   desc,
+		Table:         tableName,
+		Fields:        fields,
+		Relations:     relations,
+		Admin:         *admin,
 	}, nil
 }
 
@@ -723,11 +724,12 @@ func (s *Store) LoadModelVersion(modelID string, version string, fallbackModule 
 	}
 
 	return &mozi.ModelIR{
-		Module:    fallbackModule,
-		Name:      modelID,
-		Fields:    fields,
-		Relations: relations,
-		Admin:     *admin,
+		SchemaVersion: mozi.CurrentSchemaVersion,
+		Module:        fallbackModule,
+		Name:          modelID,
+		Fields:        fields,
+		Relations:     relations,
+		Admin:         *admin,
 	}, nil
 }
 
@@ -738,7 +740,7 @@ func (s *Store) LoadProject() (*mozi.ProjectIR, error) {
 		return nil, fmt.Errorf("list modules: %w", err)
 	}
 
-	project := &mozi.ProjectIR{Name: "memflow-cloud"}
+	project := &mozi.ProjectIR{SchemaVersion: mozi.CurrentSchemaVersion, Name: "memflow-cloud"}
 
 	for _, mod := range mods {
 		modelIDs, err := s.ListModelsByModule(mod.Name)

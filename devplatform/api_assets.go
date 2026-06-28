@@ -28,16 +28,24 @@ const (
 
 // APIAssetIndex is the dev-platform view of the generated OpenAPI contract.
 type APIAssetIndex struct {
-	Source       string             `json:"source"`
-	Title        string             `json:"title"`
-	Version      string             `json:"version"`
-	BasePath     string             `json:"base_path"`
-	GeneratedBy  string             `json:"generated_by"`
-	Summary      APIAssetSummary    `json:"summary"`
-	Modules      []APIModuleSummary `json:"modules"`
-	Surfaces     []APISurfaceCount  `json:"surfaces"`
-	Endpoints    []APIEndpointAsset `json:"endpoints"`
-	SchemaModels []APISchemaAsset   `json:"schema_models"`
+	Source        string             `json:"source"`
+	Title         string             `json:"title"`
+	Version       string             `json:"version"`
+	BasePath      string             `json:"base_path"`
+	GeneratedBy   string             `json:"generated_by"`
+	Summary       APIAssetSummary    `json:"summary"`
+	Modules       []APIModuleSummary `json:"modules"`
+	Surfaces      []APISurfaceCount  `json:"surfaces"`
+	Endpoints     []APIEndpointAsset `json:"endpoints"`
+	SchemaModels  []APISchemaAsset   `json:"schema_models"`
+	ContractDrift []APIContractDrift `json:"contract_drift"`
+}
+
+type APIContractDrift struct {
+	Code      string `json:"code"`
+	Model     string `json:"model"`
+	Operation string `json:"operation,omitempty"`
+	Message   string `json:"message"`
 }
 
 // APIAssetSummary contains aggregate counts for the workbench.
@@ -383,7 +391,62 @@ func (s *Service) ListAPIAssets(ctx context.Context) (*APIAssetIndex, error) {
 		ModuleCount:   len(index.Modules),
 		SurfaceCount:  len(index.Surfaces),
 	}
+	index.ContractDrift = checkAPIContractDrift(project, index.Endpoints)
 	return index, nil
+}
+
+func checkAPIContractDrift(project *mozi.ProjectIR, endpoints []APIEndpointAsset) []APIContractDrift {
+	if project == nil {
+		return nil
+	}
+	var drift []APIContractDrift
+	for _, mod := range project.Modules {
+		for _, model := range mod.Models {
+			ref := mod.Name + "/" + model.Name
+			if len(model.APIIntent.Operations) == 0 {
+				continue
+			}
+			matched := map[string]bool{}
+			for _, endpoint := range endpoints {
+				if endpointMentionsModel(endpoint, ref, model.Name) {
+					matched[strings.ToLower(endpoint.Method)] = true
+					matched[strings.ToLower(endpoint.OperationID)] = true
+				}
+			}
+			for _, operation := range model.APIIntent.Operations {
+				key := strings.ToLower(strings.TrimSpace(operation))
+				if !matched[key] && !matched[operationMethod(key)] {
+					drift = append(drift, APIContractDrift{Code: "missing-openapi-operation", Model: ref, Operation: operation, Message: "API intent operation is not represented in OpenAPI"})
+				}
+			}
+		}
+	}
+	sort.Slice(drift, func(i, j int) bool {
+		if drift[i].Model != drift[j].Model {
+			return drift[i].Model < drift[j].Model
+		}
+		return drift[i].Operation < drift[j].Operation
+	})
+	return drift
+}
+
+func operationMethod(operation string) string {
+	switch operation {
+	case "list", "get", "read": return "get"
+	case "create": return "post"
+	case "update": return "put"
+	case "delete": return "delete"
+	default: return ""
+	}
+}
+
+func endpointMentionsModel(endpoint APIEndpointAsset, ref, name string) bool {
+	for _, model := range endpoint.BusinessModels {
+		if model == ref || model == name || strings.HasSuffix(model, "/"+name) {
+			return true
+		}
+	}
+	return false
 }
 
 type moduleLookup struct {

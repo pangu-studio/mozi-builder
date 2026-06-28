@@ -84,6 +84,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 	projectYAML := filepath.Join(modelsDir, "_project.yaml")
 	if _, err := os.Stat(projectYAML); os.IsNotExist(err) {
 		content := `# MemFlow Cloud 项目配置
+schema_version: 1
 name: memflow-cloud
 module: memflow/cloud
 backend:

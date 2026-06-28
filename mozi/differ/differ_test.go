@@ -13,7 +13,7 @@ func TestSummaryMixedChanges(t *testing.T) {
 	from := &mozi.ModelIR{
 		Module: "content", Name: "Card",
 		Fields: []mozi.FieldIR{
-			{Name: "front", Type: mozi.FieldTypeText, Label: "正面"},  // -> modified (label)
+			{Name: "front", Type: mozi.FieldTypeText, Label: "正面"},   // -> modified (label)
 			{Name: "extra", Type: mozi.FieldTypeString, Label: "额外"}, // -> removed
 		},
 	}
@@ -21,7 +21,7 @@ func TestSummaryMixedChanges(t *testing.T) {
 		Module: "content", Name: "Card",
 		Fields: []mozi.FieldIR{
 			{Name: "front", Type: mozi.FieldTypeText, Label: "正面内容"}, // modified
-			{Name: "back", Type: mozi.FieldTypeText, Label: "背面"},      // added
+			{Name: "back", Type: mozi.FieldTypeText, Label: "背面"},    // added
 		},
 	}
 
@@ -99,5 +99,31 @@ func TestSummaryNoChanges(t *testing.T) {
 		if summary.Counts[k] != 0 {
 			t.Errorf("%s count = %d, want 0", k, summary.Counts[k])
 		}
+	}
+}
+
+func TestCompatibilityClassification(t *testing.T) {
+	from := &mozi.ModelIR{Module: "content", Name: "Deck", Fields: []mozi.FieldIR{{Name: "name", Type: mozi.FieldTypeString}}}
+	to := &mozi.ModelIR{Module: "content", Name: "Deck", Fields: []mozi.FieldIR{{Name: "title", RenamedFrom: "name", Type: mozi.FieldTypeString}, {Name: "color", Type: mozi.FieldTypeString, Required: true}}}
+	changes := Compare(from, to, "v1", "v2").Changes
+	if len(changes) != 2 {
+		t.Fatalf("changes = %#v", changes)
+	}
+	for _, change := range changes {
+		if change.Name == "title" && change.Compatibility != CompatibilitySafe {
+			t.Errorf("rename = %s", change.Compatibility)
+		}
+		if change.Name == "color" && change.Compatibility != CompatibilityConditional {
+			t.Errorf("required add = %s", change.Compatibility)
+		}
+	}
+}
+
+func TestRemovedFieldIsBreaking(t *testing.T) {
+	from := &mozi.ModelIR{Module: "content", Name: "Deck", Fields: []mozi.FieldIR{{Name: "name", Type: mozi.FieldTypeString}}}
+	to := &mozi.ModelIR{Module: "content", Name: "Deck"}
+	change := Compare(from, to, "v1", "v2").Changes[0]
+	if change.Compatibility != CompatibilityBreaking {
+		t.Fatalf("compatibility = %s", change.Compatibility)
 	}
 }

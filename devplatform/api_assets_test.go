@@ -6,6 +6,15 @@ import (
 	"github.com/pangu-studio/mozi-builder/mozi"
 )
 
+func TestCheckAPIContractDrift(t *testing.T) {
+	project := &mozi.ProjectIR{Modules: []*mozi.ModuleIR{{Name: "content", Models: []*mozi.ModelIR{{Module: "content", Name: "Deck", APIIntent: mozi.APIIntentConfig{Operations: []string{"get", "createDeck"}}}}}}}
+	endpoints := []APIEndpointAsset{{Method: "GET", OperationID: "listDecks", BusinessModels: []string{"content/Deck"}}}
+	drift := checkAPIContractDrift(project, endpoints)
+	if len(drift) != 1 || drift[0].Operation != "createDeck" {
+		t.Fatalf("drift = %#v", drift)
+	}
+}
+
 func TestInferSurfaceFromPath(t *testing.T) {
 	cases := []struct {
 		name string

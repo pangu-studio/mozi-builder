@@ -3,17 +3,21 @@
 // and code generation templates. This package has zero dependencies on memflow project code.
 package mozi
 
+// CurrentSchemaVersion is the latest IR schema understood by this build.
+const CurrentSchemaVersion = 1
+
 // ============================================================================
 // Project-level types
 // ============================================================================
 
 // ProjectIR represents the entire project configuration and all its modules.
 type ProjectIR struct {
-	Name     string         `yaml:"name" json:"name"`
-	Module   string         `yaml:"module" json:"module"` // Go module path
-	Backend  BackendConfig  `yaml:"backend" json:"backend"`
-	Frontend FrontendConfig `yaml:"frontend" json:"frontend"`
-	Modules  []*ModuleIR    `json:"modules"`
+	SchemaVersion int            `yaml:"schema_version,omitempty" json:"schema_version"`
+	Name          string         `yaml:"name" json:"name"`
+	Module        string         `yaml:"module" json:"module"` // Go module path
+	Backend       BackendConfig  `yaml:"backend" json:"backend"`
+	Frontend      FrontendConfig `yaml:"frontend" json:"frontend"`
+	Modules       []*ModuleIR    `json:"modules"`
 }
 
 // BackendConfig holds backend framework configuration.
@@ -86,43 +90,48 @@ const (
 
 // ModelIR is the intermediate representation of a parsed model YAML file.
 type ModelIR struct {
-	Module      string          `yaml:"module,omitempty" json:"module"` // populated by parser from parent dir
-	Name        string          `yaml:"model" json:"model"`
-	Label       string          `yaml:"label" json:"label"`
-	Description string          `yaml:"description,omitempty" json:"description,omitempty"`
-	Table       string          `yaml:"table" json:"table"`
-	Fields      []FieldIR       `yaml:"fields" json:"fields"`
-	Relations   []RelationIR    `yaml:"relations,omitempty" json:"relations,omitempty"`
-	Admin       AdminConfig     `yaml:"admin,omitempty" json:"admin,omitempty"`
-	Display     DisplayConfig   `yaml:"display,omitempty" json:"display,omitempty"`
-	Semantics   SemanticConfig  `yaml:"semantics,omitempty" json:"semantics,omitempty"`
-	UIIntent    UIIntentConfig  `yaml:"ui_intent,omitempty" json:"ui_intent,omitempty"`
-	APIIntent   APIIntentConfig `yaml:"api_intent,omitempty" json:"api_intent,omitempty"`
+	SchemaVersion int             `yaml:"schema_version,omitempty" json:"schema_version"`
+	Module        string          `yaml:"module,omitempty" json:"module"` // populated by parser from parent dir
+	Name          string          `yaml:"model" json:"model"`
+	Label         string          `yaml:"label" json:"label"`
+	Description   string          `yaml:"description,omitempty" json:"description,omitempty"`
+	Table         string          `yaml:"table" json:"table"`
+	Fields        []FieldIR       `yaml:"fields" json:"fields"`
+	Relations     []RelationIR    `yaml:"relations,omitempty" json:"relations,omitempty"`
+	Admin         AdminConfig     `yaml:"admin,omitempty" json:"admin,omitempty"`
+	Display       DisplayConfig   `yaml:"display,omitempty" json:"display,omitempty"`
+	Semantics     SemanticConfig  `yaml:"semantics,omitempty" json:"semantics,omitempty"`
+	UIIntent      UIIntentConfig  `yaml:"ui_intent,omitempty" json:"ui_intent,omitempty"`
+	APIIntent     APIIntentConfig `yaml:"api_intent,omitempty" json:"api_intent,omitempty"`
 }
 
 // FieldIR is the intermediate representation of a single field in a model.
 type FieldIR struct {
-	Name       string        `yaml:"name" json:"name"`
-	Type       FieldType     `yaml:"type" json:"type"`
-	Label      string        `yaml:"label" json:"label"`
-	Required   bool          `yaml:"required,omitempty" json:"required,omitempty"`
-	Unique     bool          `yaml:"unique,omitempty" json:"unique,omitempty"`
-	Sensitive  bool          `yaml:"sensitive,omitempty" json:"sensitive,omitempty"`
-	Searchable bool          `yaml:"searchable,omitempty" json:"searchable,omitempty"`
-	Listable   bool          `yaml:"listable,omitempty" json:"listable,omitempty"`
-	Editable   bool          `yaml:"editable,omitempty" json:"editable,omitempty"`
-	Default    *string       `yaml:"default,omitempty" json:"default,omitempty"`
-	EnumValues []string      `yaml:"enum_values,omitempty" json:"enum_values,omitempty"`
-	FormType   string        `yaml:"form_type,omitempty" json:"form_type,omitempty"`
-	AutoNowAdd bool          `yaml:"auto_now_add,omitempty" json:"auto_now_add,omitempty"`
-	AutoNow    bool          `yaml:"auto_now,omitempty" json:"auto_now,omitempty"`
-	Primary    bool          `yaml:"primary,omitempty" json:"primary,omitempty"`
-	Generated  GeneratedType `yaml:"generated,omitempty" json:"generated,omitempty"`
-	Sortable   bool          `yaml:"sortable,omitempty" json:"sortable,omitempty"`
+	ID          string        `yaml:"id,omitempty" json:"id,omitempty"`
+	RenamedFrom string        `yaml:"renamed_from,omitempty" json:"renamed_from,omitempty"`
+	Name        string        `yaml:"name" json:"name"`
+	Type        FieldType     `yaml:"type" json:"type"`
+	Label       string        `yaml:"label" json:"label"`
+	Required    bool          `yaml:"required,omitempty" json:"required,omitempty"`
+	Unique      bool          `yaml:"unique,omitempty" json:"unique,omitempty"`
+	Sensitive   bool          `yaml:"sensitive,omitempty" json:"sensitive,omitempty"`
+	Searchable  bool          `yaml:"searchable,omitempty" json:"searchable,omitempty"`
+	Listable    bool          `yaml:"listable,omitempty" json:"listable,omitempty"`
+	Editable    bool          `yaml:"editable,omitempty" json:"editable,omitempty"`
+	Default     *string       `yaml:"default,omitempty" json:"default,omitempty"`
+	EnumValues  []string      `yaml:"enum_values,omitempty" json:"enum_values,omitempty"`
+	FormType    string        `yaml:"form_type,omitempty" json:"form_type,omitempty"`
+	AutoNowAdd  bool          `yaml:"auto_now_add,omitempty" json:"auto_now_add,omitempty"`
+	AutoNow     bool          `yaml:"auto_now,omitempty" json:"auto_now,omitempty"`
+	Primary     bool          `yaml:"primary,omitempty" json:"primary,omitempty"`
+	Generated   GeneratedType `yaml:"generated,omitempty" json:"generated,omitempty"`
+	Sortable    bool          `yaml:"sortable,omitempty" json:"sortable,omitempty"`
 }
 
 // RelationIR is the intermediate representation of a relationship between two models.
 type RelationIR struct {
+	ID           string       `yaml:"id,omitempty" json:"id,omitempty"`
+	RenamedFrom  string       `yaml:"renamed_from,omitempty" json:"renamed_from,omitempty"`
 	Name         string       `yaml:"name" json:"name"`
 	Label        string       `yaml:"label,omitempty" json:"label,omitempty"`
 	Type         RelationType `yaml:"type" json:"type"`

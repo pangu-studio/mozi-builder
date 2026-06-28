@@ -79,7 +79,7 @@ func syncOneModel(designDB string, mf *manifest.Manifest, modelRef string) error
 		return fmt.Errorf("get model %s: %w", modelRef, err)
 	}
 
-	mf.RecordGen(modelRef, currentVersion, nil)
+	mf.RecordGenWithMetadata(modelRef, currentVersion, getVersion(), "", nil, "advisory")
 	if err := mf.Save(); err != nil {
 		return fmt.Errorf("save manifest: %w", err)
 	}
@@ -109,7 +109,7 @@ func syncAllModels(designDB string, mf *manifest.Manifest) error {
 				continue
 			}
 			ref := mod.Name + "/" + m.Name
-			mf.RecordGen(ref, version, nil)
+			mf.RecordGenWithMetadata(ref, version, getVersion(), "", nil, "advisory")
 			fmt.Printf("  ✅ %s %s\n", ref, version)
 			count++
 		}

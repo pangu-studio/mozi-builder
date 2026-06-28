@@ -3,9 +3,12 @@
 package manifest
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 )
@@ -24,15 +27,23 @@ type Manifest struct {
 
 // ModelGenInfo records the last generation for a single model.
 type ModelGenInfo struct {
-	LastGenVersion string   `json:"last_gen_version"`
-	LastGenAt      string   `json:"last_gen_at"`
-	GeneratedFiles []string `json:"generated_files"`
+	LastGenVersion   string                       `json:"last_gen_version"`
+	LastGenAt        string                       `json:"last_gen_at"`
+	GeneratedFiles   []string                     `json:"generated_files"`
+	GeneratorVersion string                       `json:"generator_version,omitempty"`
+	TemplateVersion  string                       `json:"template_version,omitempty"`
+	Files            map[string]GeneratedFileInfo `json:"files,omitempty"`
+}
+
+type GeneratedFileInfo struct {
+	Hash      string `json:"hash"`
+	Ownership string `json:"ownership"` // generated | marker | advisory
 }
 
 // Load reads the manifest from the project's models directory.
 func Load(projectRoot string) (*Manifest, error) {
 	m := &Manifest{
-		Version: 1,
+		Version: 2,
 		Models:  make(map[string]ModelGenInfo),
 		path:    filepath.Join(projectRoot, "models", ManifestFile),
 	}
@@ -51,7 +62,27 @@ func Load(projectRoot string) (*Manifest, error) {
 	if m.Models == nil {
 		m.Models = make(map[string]ModelGenInfo)
 	}
+	if m.Version < 2 {
+		m.Version = 2
+	}
 	return m, nil
+}
+
+// RecordGenWithMetadata records provenance and ownership for generated output.
+func (m *Manifest) RecordGenWithMetadata(modelRef, version, generatorVersion, templateVersion string, files map[string][]byte, ownership string) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if ownership == "" {
+		ownership = "generated"
+	}
+	info := ModelGenInfo{LastGenVersion: version, LastGenAt: time.Now().Format(time.RFC3339), GeneratorVersion: generatorVersion, TemplateVersion: templateVersion, Files: map[string]GeneratedFileInfo{}}
+	for path, content := range files {
+		hash := sha256.Sum256(content)
+		info.GeneratedFiles = append(info.GeneratedFiles, path)
+		info.Files[path] = GeneratedFileInfo{Hash: fmt.Sprintf("%x", hash[:]), Ownership: ownership}
+	}
+	sort.Strings(info.GeneratedFiles)
+	m.Models[modelRef] = info
 }
 
 // Save writes the manifest back to disk.

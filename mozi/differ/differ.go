@@ -22,13 +22,23 @@ type DiffResult struct {
 
 // FieldChange represents a single change to a model field.
 type FieldChange struct {
-	Type     ChangeType `json:"type"`                // added, removed, modified
-	Category string     `json:"category"`            // field, relation, admin
-	Name     string     `json:"name"`                // field or relation name
-	Detail   string     `json:"detail"`              // human-readable description
-	OldValue string     `json:"old_value,omitempty"` // previous value (for modified)
-	NewValue string     `json:"new_value,omitempty"` // new value (for modified)
+	Type          ChangeType    `json:"type"` // added, removed, modified
+	Compatibility Compatibility `json:"compatibility"`
+	Category      string        `json:"category"`            // field, relation, admin
+	Name          string        `json:"name"`                // field or relation name
+	Detail        string        `json:"detail"`              // human-readable description
+	OldValue      string        `json:"old_value,omitempty"` // previous value (for modified)
+	NewValue      string        `json:"new_value,omitempty"` // new value (for modified)
 }
+
+type Compatibility string
+
+const (
+	CompatibilitySafe        Compatibility = "safe"
+	CompatibilityConditional Compatibility = "conditional"
+	CompatibilityBreaking    Compatibility = "breaking"
+	CompatibilityUnknown     Compatibility = "unknown"
+)
 
 // ChangeType represents the type of change.
 type ChangeType string
@@ -44,7 +54,16 @@ type AffectedFile struct {
 	Path        string `json:"path"`
 	Description string `json:"description"`
 	ChangeCount int    `json:"change_count"`
+	Evidence EvidenceLevel `json:"evidence"`
 }
+
+type EvidenceLevel string
+
+const (
+	EvidenceCertain EvidenceLevel = "certain"
+	EvidenceInferred EvidenceLevel = "inferred"
+	EvidenceSuggested EvidenceLevel = "suggested"
+)
 
 // DiffSummary is a compact, serializable view of a DiffResult designed for
 // version-history display: aggregate counts by change type and category,
@@ -96,8 +115,41 @@ func Compare(from, to *mozi.ModelIR, fromVersion, toVersion string) *DiffResult 
 	changes = append(changes, compareAPIIntent(from.APIIntent, to.APIIntent)...)
 
 	result.Changes = changes
+	classifyChanges(result.Changes, from, to)
 	result.HasChanges = len(changes) > 0
 	return result
+}
+
+func classifyChanges(changes []FieldChange, from, to *mozi.ModelIR) {
+	for i := range changes {
+		c := &changes[i]
+		c.Compatibility = CompatibilitySafe
+		switch c.Category {
+		case "field":
+			switch c.Type {
+			case ChangeRemoved:
+				c.Compatibility = CompatibilityBreaking
+			case ChangeAdded:
+				if f := to.GetField(c.Name); f != nil && f.Required && f.Default == nil {
+					c.Compatibility = CompatibilityConditional
+				}
+			case ChangeModified:
+				if strings.Contains(c.Detail, "— type") || strings.Contains(c.Detail, "— required") || strings.Contains(c.Detail, "— primary") {
+					c.Compatibility = CompatibilityBreaking
+				}
+			}
+		case "relation":
+			if c.Type == ChangeRemoved || c.Type == ChangeModified {
+				c.Compatibility = CompatibilityBreaking
+			}
+		case "meta":
+			if c.Name == "table" {
+				c.Compatibility = CompatibilityBreaking
+			}
+		case "api_intent":
+			c.Compatibility = CompatibilityConditional
+		}
+	}
 }
 
 // compareModelMeta compares model-level metadata (label, description, table, display).
@@ -248,6 +300,13 @@ func compareFields(from, to []mozi.FieldIR) []FieldChange {
 	// Detect added and modified
 	for name, tf := range toMap {
 		ff, exists := fromMap[name]
+		if !exists && tf.RenamedFrom != "" {
+			if renamed, ok := fromMap[tf.RenamedFrom]; ok {
+				ff, exists = renamed, true
+				delete(fromMap, tf.RenamedFrom)
+				changes = append(changes, FieldChange{Type: ChangeModified, Category: "field", Name: name, Detail: fmt.Sprintf("~ field renamed: %s → %s", tf.RenamedFrom, name), OldValue: tf.RenamedFrom, NewValue: name})
+			}
+		}
 		if !exists {
 			changes = append(changes, FieldChange{
 				Type:     ChangeAdded,
@@ -620,6 +679,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 		}
 	}
 
+	for i := range files { if files[i].Evidence == "" { files[i].Evidence = EvidenceInferred } }
 	return files
 }
 
