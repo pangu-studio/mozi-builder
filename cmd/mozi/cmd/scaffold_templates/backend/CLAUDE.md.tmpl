@@ -25,14 +25,14 @@ is embedded via `github.com/pangu-studio/mozi-builder/devplatform`. Business mod
 are defined using the mozi modeling framework (via `mozi` CLI or the integrated
 dev-platform UI), and code is generated through AI Coding change plans.
 
-**Stack**: Go + Gin (HTTP) + mozi-builder (dev platform)
-**Future**: Ent (ORM) will be added when the first business model is generated.
+**Stack**: Go + Gin (HTTP) + Ent (ORM, pgx driver) + mozi-builder (dev platform)
 
 ### Key environment variables
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `[[.AddrEnv]]` | `:8080` | Server listen address |
+| `[[.DBDsnEnv]]` | `postgres://localhost:5432/[[.ModuleBase]]?sslmode=disable` | Business database DSN (ent + pgx) |
 | `[[.DevPlatformEnv]]` | `false` | Enable dev-platform API (`true`/`1` to enable) |
 | `MOZI_DB` | `postgres://localhost:5432/[[.ModuleBase]]_design?sslmode=disable` | Design database DSN |
 | `[[.AdminPathEnv]]` | `[[.UIDir]]/dist` | Web UI build output directory |
@@ -46,6 +46,51 @@ dev-platform UI), and code is generated through AI Coding change plans.
 | `*` | `/dev-platform/*` | Builder | Mozi dev platform API (when `[[.DevPlatformEnv]]=true`) |
 | `*` | `/admin/*` | — | Web UI SPA static files |
 
+### Database: Ent ORM + pgx Driver
+
+The business database uses [ent](https://entgo.io/) as the ORM with the
+[pgx](https://github.com/jackc/pgx) PostgreSQL driver.  Key files:
+
+| File | Purpose |
+|------|---------|
+| `internal/data/ent.go` | `NewEntClient(driver, dsn)` — create ent client with pgx |
+| `internal/data/tx.go` | `TransactionManager` + `GetClient(ctx, fallback)` — transaction helper |
+| `ent/schema/` | Generated ent schema files (by mozi change-plan + `ent generate`) |
+
+#### Transaction usage pattern
+
+All service-level database operations use `data.GetClient(ctx, fallback)` to
+obtain the ent client, which automatically participates in the caller's
+transaction:
+
+```go
+// Service struct — holds fallback client + tx manager
+type MyService struct {
+    client *ent.Client
+    tm     *data.TransactionManager
+}
+
+// Single operation — uses fallback client (no wrapping tx)
+func (s *MyService) Get(ctx context.Context, id string) (*ent.Model, error) {
+    return data.GetClient(ctx, s.client).Model.Get(ctx, id)
+}
+
+// Multi-step operation — wrapped in transaction
+func (s *MyService) CreateWithAudit(ctx context.Context, input CreateInput) error {
+    return s.tm.WithTransaction(ctx, func(ctx context.Context) error {
+        client := data.GetClient(ctx, s.client) // returns tx client
+        obj, err := client.Model.Create().SetField(input.Field).Save(ctx)
+        if err != nil {
+            return err
+        }
+        return client.AuditLog.Create().SetTargetID(obj.ID).Exec(ctx)
+    })
+}
+```
+
+`WithTransaction` handles commit/rollback/panic automatically — service code
+never calls `tx.Commit()` or `tx.Rollback()` directly.
+
 ### Adding your first model
 
 1. Start PostgreSQL and set `MOZI_DB` in `.env`.
@@ -54,6 +99,16 @@ dev-platform UI), and code is generated through AI Coding change plans.
 4. `mozi change-plan --model <Module/Model>` — get an AI Coding contract.
 5. Apply the change plan to generate Ent schemas, handlers, and UI pages.
 6. `make generate && cd [[.UIDir]] && npm run build && cd .. && make build`.
+
+### Activating the business database
+
+After your first model generates `ent/schema/*.go` files:
+
+1. `make generate` — runs `ent generate ./ent/schema`
+2. In `cmd/server/main.go`: uncomment the business DB block (lines 50–70) and
+   the two import lines for `internal/data` and `pgx/v5/stdlib`
+3. Ensure `[[.DBDsnEnv]]` is set in `.env`
+4. Restart the server — Ent auto-migrates the schema on startup
 
 For detailed mozi workflow documentation, see `docs/dev-platform-guide.md` and the
 [mozi-builder skills/mozi/SKILL.md](https://github.com/pangu-studio/mozi-builder/blob/main/skills/mozi/SKILL.md) skill file.

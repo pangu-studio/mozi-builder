@@ -102,6 +102,8 @@ func TestScaffoldBackendOnly(t *testing.T) {
 	assertFile(t, root, "cmd/server/main.go")
 	assertFile(t, root, "internal/middleware/cors.go")
 	assertFile(t, root, "internal/middleware/builder.go")
+	assertFile(t, root, "internal/data/ent.go")
+	assertFile(t, root, "internal/data/tx.go")
 	assertFile(t, root, "models/_project.yaml")
 	assertFile(t, root, "docs/dev-platform-guide.md")
 
@@ -127,6 +129,28 @@ func TestScaffoldBackendOnly(t *testing.T) {
 	envContent := readFile(t, filepath.Join(root, ".env"))
 	if !strings.Contains(envContent, "TESTAPP_ADDR") {
 		t.Error(".env missing env prefix")
+	}
+	if !strings.Contains(envContent, "TESTAPP_DB_DSN") {
+		t.Error(".env missing DB_DSN env var")
+	}
+
+	// Verify data layer files reference correct module path
+	entGo := readFile(t, filepath.Join(root, "internal/data/ent.go"))
+	if !strings.Contains(entGo, `"github.com/test/testapp/ent"`) {
+		t.Error("ent.go missing correct module path")
+	}
+	txGo := readFile(t, filepath.Join(root, "internal/data/tx.go"))
+	if !strings.Contains(txGo, `"github.com/test/testapp/ent"`) {
+		t.Error("tx.go missing correct module path")
+	}
+
+	// Verify main.go has business DB setup block (commented out initially)
+	mainGo2 := readFile(t, filepath.Join(root, "cmd/server/main.go"))
+	if !strings.Contains(mainGo2, "// === 业务数据库（ent + pgx）===") {
+		t.Error("main.go missing business DB comment block")
+	}
+	if !strings.Contains(mainGo2, "NewEntClient") {
+		t.Error("main.go missing NewEntClient reference")
 	}
 
 	// Web files

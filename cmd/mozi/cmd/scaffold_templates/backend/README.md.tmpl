@@ -7,7 +7,8 @@
 ```
 [[.Name]]/
 ├── cmd/server/         # Go 后端入口
-├── internal/           # 业务逻辑（handler/service/model）
+├── internal/           # 业务逻辑（handler/service/model/data）
+├── ent/schema/         # Ent ORM schema（由 mozi change-plan 生成）
 ├── models/             # mozi 模型 YAML 快照
 ├── [[.UIDir]]/         # Web 管理后台（React + Ant Design + mozi-builder-react）
 [[- if .DesktopDir ]]
@@ -24,7 +25,7 @@
 
 - Go 1.26+
 - Node.js 20+
-- PostgreSQL（用于 mozi 设计数据库）
+- PostgreSQL（用于业务数据库 + mozi 设计数据库）
 
 ## 快速启动
 
@@ -39,12 +40,22 @@ cd [[.UIDir]] && npm install && cd ..
 export MOZI_DB=postgres://localhost:5432/[[.ModuleBase]]_design?sslmode=disable
 mozi init
 
-# 4. 启动开发服务器
+# 4. 启动开发服务器（仅开发平台可用，业务 API 需先生成首个模型）
 [[.DevPlatformEnv]]=true make dev
 
 # 5. 启动前端开发服务器（另一个终端）
 cd [[.UIDir]] && npm run dev
 ```
+
+## 技术栈
+
+| 层 | 技术 |
+|---|------|
+| HTTP 框架 | Gin |
+| ORM | Ent + pgx (PostgreSQL) |
+| 事务管理 | `internal/data/tx.go` — TransactionManager + GetClient |
+| 开发平台 | mozi-builder (模型驱动 + AI 编码变更计划) |
+| 前端 | React + Ant Design + mozi-builder-react |
 
 ## 开发平台
 

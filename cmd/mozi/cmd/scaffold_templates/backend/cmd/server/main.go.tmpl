@@ -12,11 +12,47 @@ import (
 	"[[.Module]]/internal/middleware"
 	"github.com/pangu-studio/mozi-builder/devplatform"
 	"github.com/pangu-studio/mozi-builder/mozi/db"
+
+	// === 业务数据库（ent + pgx）===
+	// 取消下面两行注释以启用业务数据库：
+	// "[[.Module]]/internal/data"
+	// _ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
 	// 加载 .env 文件（不存在则忽略）
 	_ = godotenv.Load()
+
+	// ============================================================================
+	// 业务数据库（PostgreSQL + ent）— 在生成首个模型后启用
+	// ============================================================================
+	// 1. 通过 mozi 创建你的第一个模型
+	// 2. 运行 mozi change-plan --model <Module/Model> 生成 AI 编码契约
+	// 3. 应用变更计划（会生成 ent/schema/*.go 文件）
+	// 4. 运行 make generate（即 ent generate ./ent/schema）
+	// 5. 取消下面代码块的注释，同时取消顶部 import 中 data 和 pgx 两行的注释
+	//
+	// dbDSN := os.Getenv("[[.DBDsnEnv]]")
+	// if dbDSN == "" {
+	// 	dbDSN = "postgres://localhost:5432/[[.ModuleBase]]?sslmode=disable"
+	// }
+	//
+	// client, err := data.NewEntClient("pgx", dbDSN)
+	// if err != nil {
+	// 	log.Fatalf("init business db: %v", err)
+	// }
+	// defer client.Close()
+	//
+	// // 自动迁移（开发环境；生产环境请使用 ent/migrate 版本化迁移）
+	// if err := client.Schema.Create(context.Background()); err != nil {
+	// 	log.Fatalf("migrate business schema: %v", err)
+	// }
+	//
+	// // 事务管理器 — service 层通过它包裹事务操作
+	// tm := data.NewTransactionManager(client)
+	// _ = tm // 后续创建 service 时传入，例如 svc := NewMyService(client, tm)
+	//
+	// log.Println("Business database connected")
 
 	// ============================================================================
 	// 开发平台（mozi-builder）— 条件启用
@@ -79,6 +115,13 @@ func main() {
 		api.GET("/ping", func(c *gin.Context) {
 			c.JSON(200, gin.H{"status": "ok"})
 		})
+
+		// === 业务 API（在生成首个模型后取消注释）===
+		// authorized := api.Group("")
+		// authorized.Use(middleware.JWT())
+		// {
+		// 	// 示例：authorized.GET("/items", handler.ListItems)
+		// }
 
 		// 开发平台 API（需要 PostgreSQL 设计数据库）
 		devAPI := api.Group("/dev-platform")

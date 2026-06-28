@@ -1,0 +1,82 @@
+package data
+
+import (
+	"context"
+	"log"
+
+	"[[.Module]]/ent"
+)
+
+type txContextKeyType string
+
+const txContextKey = txContextKeyType("tx")
+
+// TransactionManager 统一事务管理，自动处理 commit/rollback/panic。
+// 用法：在 service 层通过 tm.WithTransaction(ctx, fn) 包裹需要事务
+// 的操作。fn 的 ctx 中携带事务 client，通过 GetClient(ctx, fallback) 获取。
+type TransactionManager struct {
+	client *ent.Client
+}
+
+// NewTransactionManager 创建事务管理器。
+func NewTransactionManager(client *ent.Client) *TransactionManager {
+	return &TransactionManager{client: client}
+}
+
+// WithTransaction 在 ent 事务中执行 fn。
+// fn 的 ctx 中携带事务 client，通过 GetClient(ctx, fallback) 即可取到，
+// 无需各 service 手动管理事务生命周期。
+//
+// 自动处理：
+//   - fn 返回 error → rollback
+//   - fn 内 panic → rollback + re-panic
+//   - fn 成功 → commit
+func (tm *TransactionManager) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	tx, err := tm.client.Tx(ctx)
+	if err != nil {
+		log.Printf("begin tx: %v", err)
+		return err
+	}
+
+	txCtx := context.WithValue(ctx, txContextKey, tx)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("tx panic, rolling back: %v", r)
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("rollback error: %v", rbErr)
+			}
+			panic(r)
+		}
+	}()
+
+	if err := fn(txCtx); err != nil {
+		log.Printf("tx fn failed, rolling back: %v", err)
+		if rbErr := tx.Rollback(); rbErr != nil {
+			log.Printf("rollback error: %v", rbErr)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("commit error: %v", err)
+		return err
+	}
+	return nil
+}
+
+// GetClient 从 ctx 提取事务 client（若存在），否则返回 fallback。
+// 所有数据库操作都应通过此方法获取 client，确保自动参与上层事务。
+//
+// 用法：
+//
+//	func (s *MyService) Create(ctx context.Context, ...) error {
+//	    client := data.GetClient(ctx, s.client)
+//	    return client.MyModel.Create().SetField(v).Exec(ctx)
+//	}
+func GetClient(ctx context.Context, fallback *ent.Client) *ent.Client {
+	if tx, ok := ctx.Value(txContextKey).(*ent.Tx); ok {
+		return tx.Client()
+	}
+	return fallback
+}

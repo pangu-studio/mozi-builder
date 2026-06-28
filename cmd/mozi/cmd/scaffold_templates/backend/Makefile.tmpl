@@ -9,7 +9,7 @@ MOZI ?= mozi
 generate:
 	ent generate ./ent/schema
 
-# 开发模式运行
+# 开发模式运行（自动设置 DB DSN 环境变量）
 dev:
 	[[.DevPlatformEnv]]=true go run ./cmd/server
 

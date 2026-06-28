@@ -23,6 +23,7 @@ type scaffoldVars struct {
 	MiniappDir      string // WeChat mini-program dir, e.g. "myapp-miniapp"
 	EnvPrefix       string // uppercased sanitized Name, e.g. "MYAPP"
 	AddrEnv         string // e.g. "MYAPP_ADDR"
+	DBDsnEnv        string // e.g. "MYAPP_DB_DSN"
 	DevPlatformEnv  string // e.g. "MYAPP_DEV_PLATFORM"
 	AdminPathEnv    string // e.g. "MYAPP_ADMIN_PATH"
 	BuilderTokenEnv string // e.g. "MYAPP_BUILDER_TOKEN"
@@ -78,6 +79,7 @@ func newScaffoldVars(name, module, uiDir, desktopDir, miniappDir string) scaffol
 		MiniappDir:      miniappDir,
 		EnvPrefix:       prefix,
 		AddrEnv:         prefix + "_ADDR",
+		DBDsnEnv:        prefix + "_DB_DSN",
 		DevPlatformEnv:  prefix + "_DEV_PLATFORM",
 		AdminPathEnv:    prefix + "_ADMIN_PATH",
 		BuilderTokenEnv: prefix + "_BUILDER_TOKEN",

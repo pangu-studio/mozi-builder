@@ -1,0 +1,22 @@
+package data
+
+import (
+	"database/sql"
+
+	"[[.Module]]/ent"
+
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+// NewEntClient 创建 ent 客户端（PostgreSQL + pgx driver）。
+// driver 为 "pgx"，dsn 格式: postgres://user:pass@host:port/dbname?sslmode=disable
+func NewEntClient(driver, dsn string) (*ent.Client, error) {
+	db, err := sql.Open(driver, dsn)
+	if err != nil {
+		return nil, err
+	}
+	drv := entsql.OpenDB(dialect.Postgres, db)
+	return ent.NewClient(ent.Driver(drv)), nil
+}
