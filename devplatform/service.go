@@ -434,6 +434,19 @@ func (s *Service) ERDiagram(ctx context.Context, module string) (string, error) 
 	return GenerateMermaidER(project), nil
 }
 
+// ERGraph returns a structured ER graph for interactive frontend rendering.
+// If module is non-empty, only entities and relations for that module are included.
+func (s *Service) ERGraph(ctx context.Context, module string) (*ERGraph, error) {
+	project, err := s.Store.LoadProject()
+	if err != nil {
+		return nil, fmt.Errorf("load project: %w", err)
+	}
+	if module != "" {
+		project = filterProjectByModule(project, module)
+	}
+	return GenerateERGraph(project), nil
+}
+
 // filterProjectByModule returns a new project containing only the specified module.
 func filterProjectByModule(project *mozi.ProjectIR, moduleName string) *mozi.ProjectIR {
 	// Find the target module

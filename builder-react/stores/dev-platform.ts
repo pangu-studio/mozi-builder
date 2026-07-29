@@ -9,6 +9,7 @@ import {
   updateModule,
   deleteModule,
   getERDiagram,
+  getERGraph,
   validateModel,
   getDiff,
   getChangePlan,
@@ -17,12 +18,14 @@ import {
   type DiffResult,
   type ChangePlanResult,
   type ValidateResult,
+  type ERGraph,
 } from '../api/dev-platform'
 
 interface DevPlatformState {
   // 数据
   modules: ModuleSummary[]
   erDsl: string
+  erGraph: ERGraph | null
   currentModel: ModelIR | null
   diffResult: DiffResult | null
   changePlan: ChangePlanResult | null
@@ -31,6 +34,7 @@ interface DevPlatformState {
   // 加载状态
   loading: boolean
   erLoading: boolean
+  erGraphLoading: boolean
   modelLoading: boolean
   diffLoading: boolean
   changePlanLoading: boolean
@@ -41,6 +45,7 @@ interface DevPlatformState {
   // Actions
   loadModules: () => Promise<void>
   loadERDiagram: (module?: string) => Promise<void>
+  loadERGraph: (module?: string) => Promise<void>
   loadModel: (module: string, name: string) => Promise<void>
   saveModel: (module: string, name: string, model: ModelIR) => Promise<ModelIR>
   createNewModel: (model: ModelIR) => Promise<ModelIR>
@@ -59,12 +64,14 @@ export const useDevPlatformStore = create<DevPlatformState>((set, get) => ({
   // 初始状态
   modules: [],
   erDsl: '',
+  erGraph: null,
   currentModel: null,
   diffResult: null,
   changePlan: null,
   validateResult: null,
   loading: false,
   erLoading: false,
+  erGraphLoading: false,
   modelLoading: false,
   diffLoading: false,
   changePlanLoading: false,
@@ -89,6 +96,17 @@ export const useDevPlatformStore = create<DevPlatformState>((set, get) => ({
       set({ erDsl: typeof res.data === 'string' ? res.data : (res.data as any)?.dsl || '', erLoading: false })
     } catch (err: any) {
       set({ error: err?.message || '加载 ER 图失败', erLoading: false })
+    }
+  },
+
+  // 加载结构化 ER 图（可选 module 参数筛选指定模块）
+  loadERGraph: async (module?: string) => {
+    set({ erGraphLoading: true, error: null })
+    try {
+      const res = await getERGraph(module)
+      set({ erGraph: res.data, erGraphLoading: false })
+    } catch (err: any) {
+      set({ error: err?.message || '加载 ER 图失败', erGraphLoading: false })
     }
   },
 

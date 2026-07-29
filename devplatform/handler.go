@@ -187,6 +187,18 @@ func (h *Handler) ERDiagram(c *gin.Context) {
 	c.String(http.StatusOK, dsl)
 }
 
+// ERGraph returns a structured ER graph JSON.
+// Optional query parameter: ?module=xxx to filter by module.
+func (h *Handler) ERGraph(c *gin.Context) {
+	module := c.Query("module")
+	graph, err := h.svc.ERGraph(c.Request.Context(), module)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, graph)
+}
+
 // ============================================================================
 // Validation
 // ============================================================================

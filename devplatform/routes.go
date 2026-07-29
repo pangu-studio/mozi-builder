@@ -23,6 +23,7 @@ func RegisterRoutes(api gin.IRoutes, h *Handler) {
 	api.DELETE("/modules/:module", h.DeleteModule)
 
 	api.GET("/models/er", h.ERDiagram)
+	api.GET("/models/er/graph", h.ERGraph)
 
 	api.GET("/modules/:module/models/:name", h.GetModel)
 	api.GET("/modules/:module/models/:name/history", h.GetModelHistory)
@@ -55,6 +56,7 @@ func RegisterUnavailableRoutes(api gin.IRoutes, fallback gin.HandlerFunc) {
 	api.DELETE("/modules/:module", fallback)
 
 	api.GET("/models/er", fallback)
+	api.GET("/models/er/graph", fallback)
 
 	api.GET("/modules/:module/models/:name", fallback)
 	api.GET("/modules/:module/models/:name/history", fallback)

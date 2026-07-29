@@ -70,6 +70,44 @@ export interface ModelVersionInfo {
   diff?: DiffSummary // structured diff vs predecessor
 }
 
+// ====== ER 图（结构化，对应后端 devplatform/er_graph.go） ======
+
+export interface ERGraphField {
+  name: string
+  type: string // string | int | float | bool | time | json
+  label?: string
+  primary?: boolean
+  unique?: boolean
+  required?: boolean
+  foreign_key?: boolean // 生成器为 belongs_to 隐式补的 FK 列
+}
+
+export interface ERGraphNode {
+  id: string
+  name: string
+  label: string
+  module: string
+  table: string
+  fields: ERGraphField[]
+}
+
+export interface ERGraphEdge {
+  id: string
+  source: string
+  target: string
+  type: string // has_one | has_many | belongs_to | many_to_many
+  label: string
+  source_field: string // 字段级端点（启发式推断，可能为空）
+  target_field: string
+  source_card: string // "1" | "N"
+  target_card: string
+}
+
+export interface ERGraph {
+  nodes: ERGraphNode[]
+  edges: ERGraphEdge[]
+}
+
 export interface FieldIR {
   name: string
   type: string // string | int | float | bool | time | text | enum | json
@@ -563,6 +601,13 @@ export function getERDiagram(module?: string) {
   return getMoziBuilderApiClient().get<string>(builderPath('/models/er'), {
     params: module ? { module } : undefined,
     responseType: 'text' as const,
+  })
+}
+
+// 结构化 ER 图（可选 module 参数筛选指定模块）
+export function getERGraph(module?: string) {
+  return getMoziBuilderApiClient().get<ERGraph>(builderPath('/models/er/graph'), {
+    params: module ? { module } : undefined,
   })
 }
 

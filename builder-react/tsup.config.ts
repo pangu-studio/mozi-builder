@@ -11,10 +11,12 @@ export default defineConfig({
     'react-router-dom',
     'antd',
     '@ant-design/icons',
+    '@xyflow/react',
     'axios',
     'dayjs',
-    'mermaid',
+    'elkjs',
     'zustand',
   ],
+  injectStyle: true,
   sourcemap: true,
 })
