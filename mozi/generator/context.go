@@ -220,7 +220,7 @@ func ServicePackagePath(modulePath, moduleName string) string {
 	return modulePath + "/internal/service/" + moduleName + "/admin"
 }
 
-// HandlerPackagePath returns the package path for internal/handler/{module}/
+// HandlerPackagePath returns the package path for internal/handler/{module}/admin/
 func HandlerPackagePath(modulePath, moduleName string) string {
-	return modulePath + "/internal/handler/" + moduleName
+	return modulePath + "/internal/handler/" + moduleName + "/admin"
 }

@@ -575,7 +575,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 	if hasFieldChanges {
 		files = append(files,
 			AffectedFile{
-				Path:        fmt.Sprintf("internal/handler/%s/%s.go", moduleName, modelSnake),
+				Path:        fmt.Sprintf("internal/handler/%s/admin/%s.go", moduleName, modelSnake),
 				Description: "Handler updated (if field list changed)",
 				ChangeCount: countByCategory(d.Changes, "field"),
 			},
@@ -605,7 +605,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 	if hasAdminChanges {
 		files = append(files,
 			AffectedFile{
-				Path:        fmt.Sprintf("internal/handler/%s/%s.go", moduleName, modelSnake),
+				Path:        fmt.Sprintf("internal/handler/%s/admin/%s.go", moduleName, modelSnake),
 				Description: "Handler updated (admin config changed)",
 				ChangeCount: countByCategory(d.Changes, "admin"),
 			},
@@ -661,7 +661,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 			apiChangeCount := countByCategory(d.Changes, "api_intent")
 			files = append(files,
 				AffectedFile{
-					Path:        fmt.Sprintf("internal/handler/%s/%s.go", moduleName, modelSnake),
+					Path:        fmt.Sprintf("internal/handler/%s/admin/%s.go", moduleName, modelSnake),
 					Description: "HTTP API behavior may need to follow the updated API contract",
 					ChangeCount: apiChangeCount,
 				},
