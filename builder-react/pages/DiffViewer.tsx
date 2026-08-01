@@ -62,9 +62,9 @@ const DiffViewer: React.FC = () => {
   const displayName = module && name ? `${module}/${name}` : ''
 
   // 统计
-  const addedCount = diff?.changes.filter((c) => c.type === 'added').length || 0
-  const removedCount = diff?.changes.filter((c) => c.type === 'removed').length || 0
-  const modifiedCount = diff?.changes.filter((c) => c.type === 'modified').length || 0
+  const addedCount = diff?.changes?.filter((c) => c.type === 'added').length || 0
+  const removedCount = diff?.changes?.filter((c) => c.type === 'removed').length || 0
+  const modifiedCount = diff?.changes?.filter((c) => c.type === 'modified').length || 0
   const hasPendingPlan = changePlan?.status === 'pending' && !!changePlan.prompt
   const iconDescriptionItems: NonNullable<React.ComponentProps<typeof Descriptions>['items']> = []
   if (changePlan?.module_icon) {
