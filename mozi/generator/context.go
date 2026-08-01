@@ -215,9 +215,9 @@ func ModelPackagePath(modulePath, moduleName string) string {
 	return modulePath + "/internal/model/" + moduleName
 }
 
-// ServicePackagePath returns the package path for internal/service/{module}/
+// ServicePackagePath returns the package path for internal/service/{module}/admin/
 func ServicePackagePath(modulePath, moduleName string) string {
-	return modulePath + "/internal/service/" + moduleName
+	return modulePath + "/internal/service/" + moduleName + "/admin"
 }
 
 // HandlerPackagePath returns the package path for internal/handler/{module}/

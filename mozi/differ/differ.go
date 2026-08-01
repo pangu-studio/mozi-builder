@@ -580,7 +580,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 				ChangeCount: countByCategory(d.Changes, "field"),
 			},
 			AffectedFile{
-				Path:        fmt.Sprintf("internal/service/%s/%s.go", moduleName, modelSnake),
+				Path:        fmt.Sprintf("internal/service/%s/admin/%s.go", moduleName, modelSnake),
 				Description: "Service updated (if field list changed)",
 				ChangeCount: countByCategory(d.Changes, "field"),
 			},
@@ -652,7 +652,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 		}
 		if hasSemanticChanges {
 			files = append(files, AffectedFile{
-				Path:        fmt.Sprintf("internal/service/%s/%s.go", moduleName, modelSnake),
+				Path:        fmt.Sprintf("internal/service/%s/admin/%s.go", moduleName, modelSnake),
 				Description: "Business behavior may need to follow updated semantics",
 				ChangeCount: countByCategory(d.Changes, "semantics"),
 			})
@@ -666,7 +666,7 @@ func (d *DiffResult) AffectedFiles() []AffectedFile {
 					ChangeCount: apiChangeCount,
 				},
 				AffectedFile{
-					Path:        fmt.Sprintf("internal/service/%s/%s.go", moduleName, modelSnake),
+					Path:        fmt.Sprintf("internal/service/%s/admin/%s.go", moduleName, modelSnake),
 					Description: "Service behavior may need to support the updated API contract",
 					ChangeCount: apiChangeCount,
 				},

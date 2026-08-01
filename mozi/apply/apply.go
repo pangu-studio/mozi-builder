@@ -101,7 +101,7 @@ func PlanModel(engine *generator.Engine, model *mozi.ModelIR, mod *mozi.ModuleIR
 		if err != nil {
 			return nil, fmt.Errorf("service: %w", err)
 		}
-		add(filepath.ToSlash(filepath.Join("internal/service", mod.Name, snake(model.Name)+".go")), content)
+		add(filepath.ToSlash(filepath.Join("internal/service", mod.Name, "admin", snake(model.Name)+".go")), content)
 	}
 
 	if target == "all" || target == "frontend" {
