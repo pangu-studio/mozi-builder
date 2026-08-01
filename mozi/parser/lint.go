@@ -122,6 +122,11 @@ func LintProject(project *mozi.ProjectIR, opts LintOptions) *LintResult {
 				add("unknown-error-code", LintError, ref, "api_intent.error_codes", fmt.Sprintf("error code %q is not registered", code))
 			}
 		}
+		for surface, cfg := range model.UIIntent.SurfacesConfig {
+			if cfg.Role != "" && !mozi.ValidSurfaceRoles[cfg.Role] {
+				add("invalid-surface-role", LintWarning, ref, fmt.Sprintf("ui_intent.surfaces_config.%s.role", surface), fmt.Sprintf("role %q is not a known surface role (management/primary/secondary/monitoring/transparent/optional/mandatory/none)", cfg.Role))
+			}
+		}
 		for i, rule := range model.Semantics.PermissionRules {
 			field := fmt.Sprintf("semantics.permission_rules[%d]", i)
 			if rule.Principal == "" || rule.Resource == "" || rule.Action == "" {

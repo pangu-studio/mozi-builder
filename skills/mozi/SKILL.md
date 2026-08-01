@@ -54,6 +54,23 @@ description: 使用 mozi CLI 进行模型驱动开发。当需要创建或修改
 
 从当前模型视角使用主动谓词，并检查反向关系能否讲述一致的业务故事。例如：Deck `包含` Card，Card `归属` Deck。
 
+### 端侧角色规则
+
+`ui_intent.surfaces_config.<surface>.role` 必须使用下列短枚举值，**不要**写描述性长文本（lint 规则 `invalid-surface-role` 会告警）：
+
+| role | 含义 | 典型场景 |
+|---|---|---|
+| `management` | 管理端：后台配置与排查 | admin 管理后台 |
+| `primary` | 主要使用端：核心任务在此完成 | 桌面端之于牌组/卡片 |
+| `secondary` | 次要使用端：支持部分任务 | 小程序之于牌组管理 |
+| `monitoring` | 只读监控端：查看数据/状态 | admin 之于复习日志 |
+| `transparent` | 对用户透明：不直接感知该模型 | CardState、ReviewLog 的客户端 |
+| `optional` | 可选使用端：不强制使用 | 桌面端登录 |
+| `mandatory` | 强制使用端：必须经由该端 | 小程序微信登录 |
+| `none` | 不在该端出现 | 小程序端之分组管理 |
+
+端侧差异的描述放在对应 surface 的 `constraints` / `views` / `actions` 里，`role` 只填枚举值。
+
 ### 字段重命名规则
 
 字段重命名时设置 `fields[].renamed_from`。不要把重命名表达成未标注的“删除旧字段＋新增字段”；后者会被判定为破坏性变更。即使显式标注重命名，也必须人工审查条件型迁移。

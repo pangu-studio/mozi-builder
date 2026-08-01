@@ -238,6 +238,28 @@ type UISurfaceIntentConfig struct {
 	Constraints  []string                       `yaml:"constraints,omitempty" json:"constraints,omitempty"`
 }
 
+// ValidSurfaceRoles enumerates the known values for UISurfaceIntentConfig.Role.
+// Use these short enumerated values instead of free-text descriptions:
+//
+//	management  — 管理端：后台配置与排查（admin）
+//	primary     — 主要使用端：核心任务在此完成
+//	secondary   — 次要使用端：支持部分任务
+//	monitoring  — 只读监控端：查看数据/状态
+//	transparent — 对用户透明：不直接感知该模型
+//	optional    — 可选使用端：不强制使用（如桌面端登录）
+//	mandatory   — 强制使用端：必须经由该端（如小程序微信登录）
+//	none        — 不在该端出现
+var ValidSurfaceRoles = map[string]bool{
+	"management":  true,
+	"primary":     true,
+	"secondary":   true,
+	"monitoring":  true,
+	"transparent": true,
+	"optional":    true,
+	"mandatory":   true,
+	"none":        true,
+}
+
 // UISurfaceViewConfig describes one view on a specific UI surface.
 type UISurfaceViewConfig struct {
 	Intent  string   `yaml:"intent,omitempty" json:"intent,omitempty"`

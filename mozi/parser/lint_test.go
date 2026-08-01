@@ -55,6 +55,17 @@ func TestLintProjectValidatesPhase2Contracts(t *testing.T) {
 	}
 }
 
+func TestLintProjectValidatesSurfaceRoles(t *testing.T) {
+	project := &mozi.ProjectIR{SchemaVersion: 1, Modules: []*mozi.ModuleIR{{Name: "billing", Models: []*mozi.ModelIR{{SchemaVersion: 1, Module: "billing", Name: "Subscription", Description: "sub", Semantics: mozi.SemanticConfig{Purpose: "sub"}, Fields: []mozi.FieldIR{{Name: "id", Label: "ID", Primary: true}, {Name: "created_at"}, {Name: "updated_at"}}, UIIntent: mozi.UIIntentConfig{SurfacesConfig: map[string]mozi.UISurfaceIntentConfig{
+		"admin":   {Role: "management"},
+		"miniapp": {Role: "用户在小程序订阅"},
+	}}}}}}}
+	result := LintProject(project, LintOptions{})
+	if !hasLintCode(result, "invalid-surface-role") {
+		t.Fatalf("issues=%#v", result.Issues)
+	}
+}
+
 func hasLintCode(result *LintResult, code string) bool {
 	for _, issue := range result.Issues {
 		if issue.Code == code {
