@@ -193,25 +193,12 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 		writeYAMLStringList(&sb, "lifecycle", model.Semantics.Lifecycle)
 	}
 
-	if hasUIIntentConfig(model.UIIntent) {
+	if !reflect.DeepEqual(model.UIIntent, mozi.UIIntentConfig{}) {
+		data, _ := yaml.Marshal(model.UIIntent)
 		sb.WriteString("\nui_intent:\n")
-		if model.UIIntent.PrimaryView != "" {
-			sb.WriteString(fmt.Sprintf("  primary_view: %s\n", model.UIIntent.PrimaryView))
+		for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+			sb.WriteString("  " + line + "\n")
 		}
-		writeYAMLStringList(&sb, "primary_actions", model.UIIntent.PrimaryActions)
-		if model.UIIntent.ListIntent != "" {
-			sb.WriteString(fmt.Sprintf("  list_intent: %q\n", model.UIIntent.ListIntent))
-		}
-		if model.UIIntent.FormIntent != "" {
-			sb.WriteString(fmt.Sprintf("  form_intent: %q\n", model.UIIntent.FormIntent))
-		}
-		if model.UIIntent.DetailIntent != "" {
-			sb.WriteString(fmt.Sprintf("  detail_intent: %q\n", model.UIIntent.DetailIntent))
-		}
-		if model.UIIntent.EmptyState != "" {
-			sb.WriteString(fmt.Sprintf("  empty_state: %q\n", model.UIIntent.EmptyState))
-		}
-		writeYAMLStringList(&sb, "interaction_notes", model.UIIntent.InteractionNotes)
 	}
 	if !reflect.DeepEqual(model.APIIntent, mozi.APIIntentConfig{}) {
 		data, _ := yaml.Marshal(model.APIIntent)
@@ -246,7 +233,7 @@ func marshalModelYAML(model *mozi.ModelIR) string {
 			sb.WriteString("    sensitive: true\n")
 		}
 		if f.Default != nil && *f.Default != "" {
-			sb.WriteString(fmt.Sprintf("    default: \"%s\"\n", *f.Default))
+			sb.WriteString(fmt.Sprintf("    default: %q\n", *f.Default))
 		} else if f.Default != nil {
 			sb.WriteString("    default: \"\"\n")
 		}
@@ -325,12 +312,6 @@ func writeYAMLStringList(sb *strings.Builder, key string, values []string) {
 func hasSemanticConfig(s mozi.SemanticConfig) bool {
 	return s.Purpose != "" || s.UserValue != "" || len(s.Audience) > 0 ||
 		len(s.BusinessRules) > 0 || len(s.Permissions) > 0 || len(s.PermissionRules) > 0 || len(s.Lifecycle) > 0
-}
-
-func hasUIIntentConfig(s mozi.UIIntentConfig) bool {
-	return s.PrimaryView != "" || len(s.PrimaryActions) > 0 || s.ListIntent != "" ||
-		s.FormIntent != "" || s.DetailIntent != "" || s.EmptyState != "" ||
-		len(s.InteractionNotes) > 0
 }
 
 func toSnake(s string) string {
