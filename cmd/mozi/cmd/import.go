@@ -94,7 +94,17 @@ func importDirModels(store *db.Store, dir string) error {
 
 	total := 0
 	for _, mod := range project.Modules {
-		// Upsert module first
+		// Upsert module first. If the parsed metadata is pure defaults (i.e. the
+		// module dir had no _module.yaml or one with only a `module:` line), keep
+		// the metadata already stored in the design DB instead of wiping it.
+		if moduleMetadataIsDefault(mod) {
+			if existing, err := store.GetModule(mod.Name); err == nil {
+				mod.Label = existing.Label
+				mod.Description = existing.Description
+				mod.Icon = existing.Icon
+				mod.APIPrefix = existing.APIPrefix
+			}
+		}
 		if err := store.UpsertModule(mod); err != nil {
 			return fmt.Errorf("upsert module %s: %w", mod.Name, err)
 		}
@@ -115,6 +125,17 @@ func importDirModels(store *db.Store, dir string) error {
 
 	fmt.Printf("\n✅ Imported %d model(s) into design database\n", total)
 	return nil
+}
+
+// moduleMetadataIsDefault reports whether the module metadata is exactly what
+// parser.applyModuleDefaults produces for a missing/minimal _module.yaml —
+// meaning the YAML carried no real metadata and the design DB's values (if any)
+// should be preserved on import.
+func moduleMetadataIsDefault(mod *mozi.ModuleIR) bool {
+	return mod.Label == mod.Name &&
+		mod.Description == "" &&
+		mod.Icon == "" &&
+		mod.APIPrefix == mod.Name
 }
 
 func validateImportModel(model *mozi.ModelIR) error {
