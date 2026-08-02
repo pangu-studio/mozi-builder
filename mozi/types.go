@@ -36,9 +36,10 @@ type ErrorCodeIR struct {
 
 // BackendConfig holds backend framework configuration.
 type BackendConfig struct {
-	Package   string `yaml:"package" json:"package"`     // Go package prefix, e.g., "memflow/cloud"
-	Framework string `yaml:"framework" json:"framework"` // gin | echo | chi
-	ORM       string `yaml:"orm" json:"orm"`             // ent | gorm | sqlx
+	Package      string `yaml:"package" json:"package"`           // Go package prefix, e.g., "memflow/cloud"
+	Framework    string `yaml:"framework" json:"framework"`       // gin | echo | chi
+	ORM          string `yaml:"orm" json:"orm"`                   // ent | gorm | sqlx
+	AdminAPIBase string `yaml:"admin_api_base,omitempty" json:"admin_api_base,omitempty"` // Mount prefix for admin CRUD routes, e.g., "/api/admin" → /api/admin/{module}/...
 }
 
 // FrontendConfig holds frontend framework configuration.

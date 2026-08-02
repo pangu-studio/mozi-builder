@@ -935,6 +935,7 @@ func buildContracts(status ChangePlanStatus) []string {
 		"Preserve existing custom business logic, UI behavior, comments, imports, and local formatting.",
 		"Use existing module layout, API helpers, stores, route style, and component patterns.",
 		"Treat API intent as a first-class contract for routes, DTOs, auth, errors, docs, and compatibility.",
+		"Every new or modified HTTP endpoint must carry swaggo annotations; @Tags starts with the owning module label (e.g. 计费) and may append the model label (e.g. 会员方案); @Router must match the actual registered path (admin CRUD: {admin_api_base}/{module_api_prefix}/{plural}); regenerate docs (swag init) afterwards so the dev platform API workbench stays in sync.",
 		"Keep deterministic generated artifacts small; put business behavior in normal application code.",
 		"Do not modify unrelated modules or files unless the model relationship requires it.",
 	}

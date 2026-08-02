@@ -31,6 +31,9 @@ type TemplateContext struct {
 	ModuleLabel     string // module label: 内容管理
 	ModuleAPIPrefix string // module API prefix: content
 
+	// AdminAPIBase is the mount prefix for admin CRUD routes, e.g. "/api/admin".
+	AdminAPIBase string
+
 	// Package path helpers
 	ModulePath string // e.g., memflow/cloud
 	ModelPkg   string // e.g., memflow/cloud/internal/model/content
@@ -95,6 +98,10 @@ func BuildContextWithModule(model *mozi.ModelIR, mod *mozi.ModuleIR, project *mo
 	}
 	if project != nil && project.Backend.Package != "" {
 		ctx.ModulePath = project.Backend.Package
+	}
+	ctx.AdminAPIBase = "/api/admin"
+	if project != nil && project.Backend.AdminAPIBase != "" {
+		ctx.AdminAPIBase = strings.TrimRight(project.Backend.AdminAPIBase, "/")
 	}
 
 	// Model package path

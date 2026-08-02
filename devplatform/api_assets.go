@@ -778,6 +778,9 @@ func splitSchemaName(name string) (string, string) {
 	for _, suffix := range []string{"Req", "Request", "Resp", "Response", "DTO"} {
 		model = strings.TrimSuffix(model, suffix)
 	}
+	// Admin CRUD DTOs are named Admin{Model}Item/ListResp/... — strip the
+	// Admin prefix so they link back to the underlying business model.
+	model = strings.TrimPrefix(model, "Admin")
 	if len(parts) > 1 {
 		return parts[len(parts)-2], model
 	}

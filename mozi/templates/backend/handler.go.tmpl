@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"[[.ModelPkg]]"
 	service "[[.ModulePath]]/internal/service/[[.ModuleName]]/admin"
 
 	"github.com/gin-gonic/gin"
@@ -21,6 +22,20 @@ func New[[.Name]]Handler(svc *service.[[.Name]]Service) *[[.Name]]Handler {
 }
 
 // mozi:section List[[.Name]] — [[.Model.Label]]列表查询（由 mozi 管理）
+// List [[.Model.Label]]列表
+// @Summary      [[.Model.Label]]列表
+// @Description  分页查询[[.Model.Label]]列表[[if .SearchFields]]，支持 keyword 关键词搜索[[end]]
+// @Tags         [[.ModuleLabel]],[[.Model.Label]]
+// @Produce      json
+// @Security     AdminAuth
+// @Param        page       query     int     false  "页码，从 1 开始"
+// @Param        page_size  query     int     false  "每页数量"
+[[- if .SearchFields ]]
+// @Param        keyword    query     string  false  "搜索关键词"
+[[- end ]]
+// @Success      200        {object}  [[.ModuleName]].Admin[[.Name]]ListResp  "[[.Model.Label]]列表"
+// @Failure      500        {object}  map[string]interface{}        "服务器错误"
+// @Router       [[.AdminAPIBase]]/[[.ModuleAPIPrefix]]/[[.NamePlural]] [get]
 func (h *[[.Name]]Handler) List(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "[[.Admin.PageSize]]"))
@@ -38,6 +53,16 @@ func (h *[[.Name]]Handler) List(c *gin.Context) {
 // mozi:end List[[.Name]]
 
 // mozi:section Get[[.Name]] — [[.Model.Label]]详情（由 mozi 管理）
+// Get [[.Model.Label]]详情
+// @Summary      [[.Model.Label]]详情
+// @Description  按 ID 获取[[.Model.Label]]详情
+// @Tags         [[.ModuleLabel]],[[.Model.Label]]
+// @Produce      json
+// @Security     AdminAuth
+// @Param        id   path      string  true  "[[.Model.Label]]ID"
+// @Success      200  {object}  [[.ModuleName]].Admin[[.Name]]Item  "[[.Model.Label]]详情"
+// @Failure      500  {object}  map[string]interface{}    "服务器错误"
+// @Router       [[.AdminAPIBase]]/[[.ModuleAPIPrefix]]/[[.NamePlural]]/{id} [get]
 func (h *[[.Name]]Handler) Get(c *gin.Context) {
 	id := c.Param("id")
 	result, err := h.svc.Get(c.Request.Context(), id)
@@ -50,8 +75,20 @@ func (h *[[.Name]]Handler) Get(c *gin.Context) {
 // mozi:end Get[[.Name]]
 
 // mozi:section Create[[.Name]] — 创建[[.Model.Label]]（由 mozi 管理）
+// Create 创建[[.Model.Label]]
+// @Summary      创建[[.Model.Label]]
+// @Description  创建一条新的[[.Model.Label]]记录
+// @Tags         [[.ModuleLabel]],[[.Model.Label]]
+// @Accept       json
+// @Produce      json
+// @Security     AdminAuth
+// @Param        body  body      [[.ModuleName]].Admin[[.Name]]CreateReq  true  "[[.Model.Label]]信息"
+// @Success      200   {object}  [[.ModuleName]].Admin[[.Name]]Item             "创建结果"
+// @Failure      400   {object}  map[string]interface{}               "参数错误"
+// @Failure      500   {object}  map[string]interface{}               "服务器错误"
+// @Router       [[.AdminAPIBase]]/[[.ModuleAPIPrefix]]/[[.NamePlural]] [post]
 func (h *[[.Name]]Handler) Create(c *gin.Context) {
-	var req Admin[[.Name]]CreateReq
+	var req [[.ModuleName]].Admin[[.Name]]CreateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -67,9 +104,22 @@ func (h *[[.Name]]Handler) Create(c *gin.Context) {
 // mozi:end Create[[.Name]]
 
 // mozi:section Update[[.Name]] — 更新[[.Model.Label]]（由 mozi 管理）
+// Update 更新[[.Model.Label]]
+// @Summary      更新[[.Model.Label]]
+// @Description  按 ID 更新[[.Model.Label]]记录
+// @Tags         [[.ModuleLabel]],[[.Model.Label]]
+// @Accept       json
+// @Produce      json
+// @Security     AdminAuth
+// @Param        id    path      string                           true  "[[.Model.Label]]ID"
+// @Param        body  body      [[.ModuleName]].Admin[[.Name]]UpdateReq  true  "[[.Model.Label]]信息"
+// @Success      200   {object}  [[.ModuleName]].Admin[[.Name]]Item             "更新结果"
+// @Failure      400   {object}  map[string]interface{}               "参数错误"
+// @Failure      500   {object}  map[string]interface{}               "服务器错误"
+// @Router       [[.AdminAPIBase]]/[[.ModuleAPIPrefix]]/[[.NamePlural]]/{id} [put]
 func (h *[[.Name]]Handler) Update(c *gin.Context) {
 	id := c.Param("id")
-	var req Admin[[.Name]]UpdateReq
+	var req [[.ModuleName]].Admin[[.Name]]UpdateReq
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -85,6 +135,16 @@ func (h *[[.Name]]Handler) Update(c *gin.Context) {
 // mozi:end Update[[.Name]]
 
 // mozi:section Delete[[.Name]] — 删除[[.Model.Label]]（由 mozi 管理）
+// Delete 删除[[.Model.Label]]
+// @Summary      删除[[.Model.Label]]
+// @Description  按 ID 删除[[.Model.Label]]记录
+// @Tags         [[.ModuleLabel]],[[.Model.Label]]
+// @Produce      json
+// @Security     AdminAuth
+// @Param        id   path      string  true  "[[.Model.Label]]ID"
+// @Success      200  {object}  map[string]interface{}  "删除成功"
+// @Failure      500  {object}  map[string]interface{}  "服务器错误"
+// @Router       [[.AdminAPIBase]]/[[.ModuleAPIPrefix]]/[[.NamePlural]]/{id} [delete]
 func (h *[[.Name]]Handler) Delete(c *gin.Context) {
 	id := c.Param("id")
 	if err := h.svc.Delete(c.Request.Context(), id); err != nil {
