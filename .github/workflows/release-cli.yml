@@ -84,6 +84,7 @@ jobs:
         with:
           name: mozi-${{ matrix.goos }}-${{ matrix.goarch }}
           path: dist/mozi_*.${{ matrix.archive }}
+          retention-days: 1
           if-no-files-found: error
 
   release:
