@@ -2,7 +2,7 @@
 slug: mozi
 name: mozi
 displayName: Mozi 模型驱动开发
-version: 0.2.2
+version: 0.2.3
 description: 使用 mozi CLI 进行模型驱动开发。当需要创建或修改业务模型、校验或 lint ModelIR、检查差异与 AI 变更计划、管理错误码或设计字典、导入导出 YAML 快照，以及生成受控的数据库迁移、Bruno 合约、权限骨架、i18n 目录或 OpenAPI TypeScript SDK 时使用。
 ---
 # Mozi 模型驱动开发
