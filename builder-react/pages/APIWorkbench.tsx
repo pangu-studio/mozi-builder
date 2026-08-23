@@ -218,9 +218,13 @@ const APIWorkbench: React.FC = () => {
       }
       // Substitute path parameters into the URL
       const filledPath = fillPathParams(selectedEndpoint.path, debugPathParams)
+      const unfilled = /^https?:\/\//.test(filledPath) ? null : filledPath.match(/\{[^/{}]+\}|:[^/]+/)
+      if (unfilled) {
+        throw new Error(`Path 参数 ${unfilled[0]} 未填写，请先在 Path 参数中填入取值`)
+      }
       const res = await getMoziBuilderApiClient().request({
         method: selectedEndpoint.method,
-        url: toAxiosURL(filledPath),
+        url: toAxiosURL(filledPath, assetIndex?.base_path),
         params,
         data,
         headers: Object.keys(headers).length > 0 ? headers : undefined,
@@ -699,11 +703,21 @@ function parseJSON(value: string, label: string) {
   }
 }
 
-function toAxiosURL(path: string) {
+// toAxiosURL 将 OpenAPI 路径转换为交给 axios 的 URL。
+// 嵌入方约定 axios baseURL 为 '/api'（dev-platform API 也挂在 /api/dev-platform 下）：
+// 1. Swagger 2.0 的 paths 通常不含 basePath 前缀，先用文档的 basePath（如 /api）补全；
+// 2. 完整路径以 /api 开头时去掉该前缀，交给 baseURL 拼接，避免重复；
+// 3. 其余情况拼同源绝对 URL，使 axios 忽略 baseURL，直接打到服务端根路径。
+function toAxiosURL(path: string, basePath?: string): string {
   if (/^https?:\/\//.test(path)) return path
-  if (path === '/api') return '/'
-  if (path.startsWith('/api/')) return path.slice(4)
-  return `${window.location.origin}${path}`
+  let full = path.startsWith('/') ? path : `/${path}`
+  const bp = basePath?.trim().replace(/\/+$/, '')
+  if (bp && bp !== '/' && full !== bp && !full.startsWith(`${bp}/`)) {
+    full = `${bp}${full}`
+  }
+  if (full === '/api') return '/'
+  if (full.startsWith('/api/')) return full.slice(4)
+  return `${window.location.origin}${full}`
 }
 
 function mergeModuleOptions(apiModules: APIModuleSummary[], modelModules: ModuleSummary[]) {
