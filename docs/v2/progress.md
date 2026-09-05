@@ -85,3 +85,9 @@
 - 根模块新增 ServiceIR 类型、`mozi/service` 校验与编号规则、differ 的 ServiceIR 兼容性分类；纯新增，v1 回归通过。
 - 设计库 `0003_services` 新增 design_services / design_service_history，复用模型的乐观版本与不可变历史模式；`design/services` 接口与模型接口共用同一鉴权与版本协议。
 - 验证：平台 go test -race 覆盖服务文档的同名隔离、跨项目六类接口拒绝、viewer 只读、428/409、并发仅一次成功、reserved 编号复用拒绝、历史失败回滚与删除保留；双库 verify 通过。控制台服务编辑界面、ChangePlan 接入与示例服务在 PR-C/D/E。
+
+### 阶段 3：ChangePlan 装配与平台接入（PR-D1）
+
+- ChangePlan 装配逻辑从 devplatform 原样抽取到根模块 `mozi/changeplan`（纯函数，无 gin/v1 设计库依赖）；v1 以类型别名 + 薄适配层保持 CLI 与 HTTP 行为不变，回归通过。
+- 平台新增 `GET .../design/models/:module/:name/change-plan`：design_models 当前文档对上一历史快照做 differ 对比，装配 AI Coding 契约；v2 无 manifest，状态为 pending / no_diff。
+- 验证：真实双库 race 测试覆盖创建后 pending、更新后差异、viewer 可读、跨项目 404、services 集合 404；平台 go test -race 与 go vet 全绿。示例 HTTP 服务（渲染产物可运行）在 PR-D2，依赖模板 PR 合并。
