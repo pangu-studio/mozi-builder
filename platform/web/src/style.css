@@ -331,3 +331,19 @@ micro-app {
     padding: 40px 16px;
   }
 }
+.model-metadata {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 20px;
+}
+.model-snapshot {
+  max-height: 450px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .model-metadata {
+    grid-template-columns: 1fr;
+  }
+}

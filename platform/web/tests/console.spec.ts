@@ -243,3 +243,126 @@ test("mobile layout remains usable", async ({ page }) => {
     fullPage: true,
   });
 });
+
+test("project model create, conflict preservation, history and project switch", async ({
+  page,
+}) => {
+  const modelErrors: string[] = [];
+  page.on("pageerror", (e) => modelErrors.push(e.message));
+  await mock(page);
+  type Entry = {
+    module: string;
+    name: string;
+    version: string;
+    document: Record<string, unknown>;
+  };
+  const records: Record<string, Entry[]> = {
+    alpha: [],
+    beta: [
+      {
+        module: "content",
+        name: "Card",
+        version: "b1",
+        document: {
+          module: "content",
+          model: "Card",
+          label: "Beta 模型",
+          table: "cards",
+          fields: [],
+          semantics: { purpose: "Beta" },
+        },
+      },
+    ],
+  };
+  let conflict = false;
+  await page.route("**/api/v2/projects/*/design/models**", async (route) => {
+    const req = route.request();
+    const parts = new URL(req.url()).pathname.split("/");
+    const project = parts[4];
+    const name = parts[8];
+    if (req.method() === "POST") {
+      const input = req.postDataJSON();
+      const m = {
+        module: input.document.module,
+        name: input.document.model,
+        version: "a1",
+        document: input.document,
+      };
+      records[project].push(m);
+      return route.fulfill({ status: 201, json: m });
+    }
+    const model = records[project].find((m) => m.name === name);
+    if (req.method() === "PUT") {
+      if (conflict)
+        return route.fulfill({
+          status: 409,
+          json: { error: "model_conflict" },
+        });
+      return route.fulfill({ json: model });
+    }
+    if (parts.at(-1) === "history")
+      return route.fulfill({
+        json: [
+          {
+            version: "a1",
+            document: model!.document,
+            action: "created",
+            created_at: "2026-09-05T12:00:00Z",
+            actor_id: "user",
+          },
+        ],
+      });
+    return route.fulfill({ json: name ? model : records[project] });
+  });
+  await login(page);
+  await page.getByRole("link", { name: "模型设计", exact: true }).click();
+  await expect(page.getByTestId("real-designer")).toBeVisible();
+  await page.getByRole("button", { name: "新建模型", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "模型标识", exact: true })
+    .fill("Card");
+  await page
+    .getByRole("textbox", { name: "模型名称", exact: true })
+    .fill("Alpha 模型");
+  await page
+    .getByRole("textbox", { name: "数据表名", exact: true })
+    .fill("cards");
+  await page.getByRole("button", { name: "保存模型", exact: true }).click();
+  await expect(
+    page.getByText("模型已保存，历史版本已记录。", { exact: true }),
+  ).toBeVisible();
+  conflict = true;
+  await page
+    .getByRole("textbox", { name: "模型名称", exact: true })
+    .fill("本地尚未保存");
+  await page.getByRole("button", { name: "保存模型", exact: true }).click();
+  await expect(page.getByText(/保存冲突：模型已被修改/)).toBeVisible();
+  await expect(
+    page.getByRole("textbox", { name: "模型名称", exact: true }),
+  ).toHaveValue("本地尚未保存");
+  await page.getByRole("button", { name: "版本历史", exact: true }).click();
+  await expect(page.getByText(/created · a1/)).toBeVisible();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+ await expect(page.getByRole("dialog",{name:"模型历史"})).toBeHidden();
+  await page.screenshot({
+    path: test.info().outputPath("models.png"),
+    fullPage: true,
+  });
+  page.once("dialog", (dialog) => dialog.accept());
+  await switchProject(page);
+  await expect(page.getByText("Beta 模型", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "新建模型", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("textbox", { name: "模型名称", exact: true }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "Card", exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "模型名称", exact: true }),
+  ).toHaveValue("Beta 模型");
+  await expect(
+    page.getByRole("textbox", { name: "模型名称", exact: true }),
+  ).toBeDisabled();
+  expect(modelErrors).toEqual([]);
+});

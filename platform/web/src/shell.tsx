@@ -84,6 +84,9 @@ function Console({
   const [user, setUser] = useState<User | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selected, setSelected] = useState("");
+  const [designDirty, setDesignDirty] = useState(false);
+  const mayLeave = () =>
+    !designDirty || window.confirm("放弃模型中尚未保存的修改？");
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [version, setVersion] = useState(0);
@@ -151,6 +154,7 @@ function Console({
   }, [call, version]);
   const project = projects.find((p) => p.id === selected);
   const signOut = async () => {
+    if (!mayLeave()) return;
     setLeaving(true);
     setLogoutError("");
     try {
@@ -189,6 +193,7 @@ function Console({
             placeholder="选择项目"
             options={projects.map((p) => ({ value: p.id, label: p.name }))}
             onChange={(id) => {
+              if (!mayLeave()) return;
               setSelected(id);
               setNotice("");
             }}
@@ -203,6 +208,9 @@ function Console({
           <nav aria-label="平台导航">
             <a
               href="#environments"
+              onClick={(e) => {
+                if (!mayLeave()) e.preventDefault();
+              }}
               aria-current={page === "environments" ? "page" : undefined}
             >
               环境管理
@@ -261,7 +269,12 @@ function Console({
                 </span>
               </div>
               {page === "designer" ? (
-                <DesignerPreview key={project.id} />
+                <DesignerPreview
+                  key={project.id}
+                  project={project}
+                  call={call}
+                  onDirty={setDesignDirty}
+                />
               ) : (
                 <Environments key={project.id} project={project} call={call} />
               )}
