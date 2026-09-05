@@ -4,7 +4,7 @@ test("existing designer mounts; dialogs survive unmount/remount and theme change
 }) => {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/#designer");
+  await page.goto("/lab.html#designer");
   await expect(page.getByText("设计器已挂载", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Mozi v2 设计器", exact: true }),
