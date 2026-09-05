@@ -6,6 +6,7 @@ require (
 	github.com/jackc/pgx/v5 v5.8.0
 	github.com/zeromicro/go-zero v1.10.3
 	go.etcd.io/etcd/client/v3 v3.5.21
+	golang.org/x/crypto v0.48.0
 	google.golang.org/grpc v1.80.0
 )
 
