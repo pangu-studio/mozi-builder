@@ -39,3 +39,8 @@ dist/
 
 # Node (builder-react)
 node_modules/
+
+# v2 browser verification
+platform/web/test-results/
+platform/web/playwright-report/
+__pycache__/

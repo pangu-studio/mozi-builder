@@ -1,0 +1,23 @@
+# Disposable local PoC only. Admin listener is not published to the host.
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+    allow_admin:
+      - 0.0.0.0/0
+    admin_key:
+      - name: poc
+        key: mozi-v2-local-poc-only
+        role: admin
+  etcd:
+    host:
+      - http://gateway-store:2379
+    prefix: /apisix
+    timeout: 10
