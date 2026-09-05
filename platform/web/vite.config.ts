@@ -14,10 +14,14 @@ export default defineConfig({
       "axios",
     ],
   },
-  server: { fs: { allow: [resolve(import.meta.dirname, "../..")] } },
+  server: {
+    proxy: { "/api/v2": "http://127.0.0.1:15180" },
+    fs: { allow: [resolve(import.meta.dirname, "../..")] },
+  },
   build: {
     rollupOptions: {
       input: {
+        lab: resolve(import.meta.dirname, "lab.html"),
         console: resolve(import.meta.dirname, "index.html"),
         designer: resolve(import.meta.dirname, "designer/index.html"),
       },

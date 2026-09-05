@@ -88,3 +88,13 @@ cd platform && go test -race ./...
 - micro-app 当前使用预发布版本；必须保留生命周期回归用例，升级时重跑。其他组件也不得使用浮动 latest。
 
 官方依据：[go-zero discovery](https://go-zero.dev/guides/microservice/service-discovery/)、[APISIX Admin API](https://apisix.apache.org/docs/apisix/admin-api/)、[Dkron](https://dkron.io/docs/basics/getting-started/)、[micro-app Vite 接入](https://github.com/jd-opensource/micro-app/blob/master/docs/zh-cn/framework/vite.md)。
+
+## 控制台
+
+`web/` 默认首页现在为真实平台控制台：登录、当前用户、项目创建/切换、环境列表/创建、退出登录。启动 API 后，在 `web/` 执行 `npm run dev`，打开 `http://127.0.0.1:15170`；Vite 将 `/api/v2` 转发到 `127.0.0.1:15180`。
+
+需要先用 `platform-user` 创建账号，流程见 [平台 API](../docs/v2/platform-api.md)。前端没有默认密码。会话保存在当前标签页的 sessionStorage；接口 401 清理会话并返回登录页，网络故障则显示重试。线上静态部署需将 `/api/v2` 配置为同源 HTTPS 反向代理。
+
+切换项目销毁旧环境视图并取消请求，角色只控制按钮展示，最终由后端授权。当前环境页在 shell 中，设计器继续通过 micro-app 加载且明确为演示内容；真实项目模型隔离在阶段 2 接入。原阶段 0 实验入口保留在 `/lab.html#designer`，不连接业务数据。
+
+浏览器测试：先 `npm run build`，再 `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`（或安装 Playwright 浏览器后省略该变量）。测试使用独立 `15172` 端口与模拟 API，覆盖会话、创建、项目切换、错误重试和微前端生命周期；真实 PostgreSQL 权限由后端集成测试验证。列表暂受后端 500 条上限约束，界面每页展示 10 条。
