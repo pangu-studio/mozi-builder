@@ -68,7 +68,9 @@ differ 需要扩展 ServiceIR diff：字段新增/删除/编号变更/类型变�
 - API 前缀 `/api/v2/projects/:project/design/services`，契约与阶段 2 模型接口逐项对齐：列表上限 500、同名 409、缺版本 428、版本不匹配 409、跨项目/非成员 404、viewer 只读、删除保留历史。鉴权复用现有项目成员校验与行锁模式。
 - 模型与服务同属设计域，但**不互相级联删除**；引用悬空（服务引用了不存在的模型）由校验/lint 报告，不在写入时硬阻断。
 
-## gozero-ent 生成
+## gozero-ent 生成（HTTP 优先）
+
+**短期重点是 HTTP 链路**（`.api` + ent schema + handler 骨架），先用 HTTP 示例打通"模型 → 契约 → 生成 → 运行"；proto / RPC 生成与编号规则的强制执行随后跟进，但不移出阶段 3 范围——架构的 HTTP→RPC 链路和"HTTP/RPC 示例可运行"退出条件不变。
 
 - 复用根模块 generator 的模板引擎（`[[ ]]` 分隔符、embed fs）与 **marker 系统**（`// mozi:section` 等），这是"增量更新保留手写代码"退出条件的实现手段；禁止整文件覆盖手写区。
 - 产物清单（示例项目验收用）：
@@ -92,8 +94,9 @@ platform 经伪版本引用根模块，根模块改动必须先合入并推送�
 |---|---|---|
 | A | 根模块：ServiceIR 类型、`mozi/service` 校验与编号规则、ServiceIR differ 扩展，纯单测 | `go test ./...`（含 v1 回归） |
 | B | platform：`0003_services.sql` + 服务 CRUD/历史 API（go get PR-A 的伪版本） | 双库临时 schema 竞态测试，模式同阶段 2 |
-| C | 根模块：proto / .api / ent schema / handler 模板与渲染，golden 文件测试 | 渲染产物 diff 可审查，marker 替换单测 |
-| D | 根模块 changeplan 抽取 + platform 接入 + **示例服务端到端** | HTTP 请求与 RPC 调用在示例项目跑通，作为阶段退出证据 |
+| C | 根模块：**HTTP 优先**——`.api` / ent schema / handler 模板与渲染，golden 文件测试 | 渲染产物 diff 可审查，marker 替换单测 |
+| D | 根模块 changeplan 抽取 + platform 接入 + **示例 HTTP 服务端到端** | HTTP 示例跑通，作为阶段退出的先行证据 |
+| E | proto / RPC 模板与编号强制 + **RPC 示例端到端** | RPC 示例跑通，阶段退出条件完整达成 |
 
 ## 验证基线
 
