@@ -56,7 +56,16 @@ npm run test:e2e
 
 `internal/config.LoadDatabases` 要求显式 URL，设计库路径只能是 `mozi_v2_design`，平台库只能是 `mozi_v2_platform`，禁止通过查询参数覆盖目标库。错误信息不包含凭证。
 
-该校验包是阶段 1 的基础，当前 PoC 不调用数据库初始化；平台迁移、认证、项目/环境管理尚未实现。根目录本地 `.env` 已包含两库各自的受限账号，必须保持 Git 忽略。
+阶段 1 使用独立的迁移 CLI。它按数据库分别获取 PostgreSQL advisory lock，每个版本在独立事务中执行，并在 `schema_migrations` 中保存名称、SHA-256 校验和与应用时间。已经应用的 SQL 不得修改；服务启动只运行 `-verify`，不自动迁移。
+
+```bash
+make v2-migrate
+make v2-migrate-verify
+```
+
+CLI 只从进程环境或显式 `-env-file` 读取 `MOZI_DB` 与 `MOZI_PLATFORM_DB`，忽略文件中的其他变量。根目录本地 `.env` 包含两个受限账号，必须保持 Git 忽略。
+
+首批设计库表为 `design_projects`。首批平台库表为 `users`、`projects`、`project_members`、`environments` 和 append-only 语义的 `audit_events`。跨库使用相同项目 ID，不建立外键或跨库事务。认证、项目 API 和应用角色的数据库授权仍在后续变更中实现。
 
 ## 测试
 
