@@ -5,6 +5,7 @@ import (
 
 	"github.com/zeromicro/go-zero/rest/httpx"
 )
+
 // ListDecks handles GET /api/content/decks.
 func ListDecks(w http.ResponseWriter, r *http.Request) {
 	// mozi:section ListDecksRequest — generated request plumbing
@@ -14,7 +15,6 @@ func ListDecks(w http.ResponseWriter, r *http.Request) {
 	// handwritten and preserved across regeneration.
 	httpx.OkJson(w, nil)
 }
-
 
 // CreateDeck handles POST /api/content/decks.
 func CreateDeck(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +32,6 @@ func CreateDeck(w http.ResponseWriter, r *http.Request) {
 	httpx.OkJson(w, nil)
 }
 
-
 // DeckHealth handles GET /api/content/health.
 func DeckHealth(w http.ResponseWriter, r *http.Request) {
 	// mozi:section DeckHealthRequest — generated request plumbing
@@ -42,5 +41,3 @@ func DeckHealth(w http.ResponseWriter, r *http.Request) {
 	// handwritten and preserved across regeneration.
 	httpx.OkJson(w, nil)
 }
-
-

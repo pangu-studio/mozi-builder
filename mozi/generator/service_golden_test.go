@@ -93,6 +93,10 @@ func TestServiceHandlerGolden(t *testing.T) {
 	renderGolden(t, "service/handler.go.tmpl", "service_handler.go.golden")
 }
 
+func TestServiceTypesGolden(t *testing.T) {
+	renderGolden(t, "service/types.go.tmpl", "service_types.go.golden")
+}
+
 func TestServiceHandlerIncrementalPreservesHandwrittenCode(t *testing.T) {
 	engine := NewEngine(serviceTemplateFS(t))
 	out, err := engine.ExecuteService("service/handler.go.tmpl", goldenService())
