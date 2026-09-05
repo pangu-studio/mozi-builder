@@ -23,7 +23,6 @@ export default defineConfig({
       input: {
         lab: resolve(import.meta.dirname, "lab.html"),
         console: resolve(import.meta.dirname, "index.html"),
-        designer: resolve(import.meta.dirname, "designer/index.html"),
       },
     },
   },

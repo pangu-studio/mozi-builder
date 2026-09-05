@@ -38,3 +38,21 @@ func Open(ctx context.Context, envFile string) (*sql.DB, error) {
 	}
 	panic("unreachable")
 }
+
+func OpenDesign(ctx context.Context) (*sql.DB, error) {
+	cfg, err := config.LoadDatabases(os.Getenv)
+	if err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("pgx", cfg.Design)
+	if err != nil {
+		return nil, err
+	}
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(2)
+	if err = migrate.Verify(ctx, db, "design"); err != nil {
+		db.Close()
+		return nil, err
+	}
+	return db, nil
+}

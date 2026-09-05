@@ -14,7 +14,10 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
-type API struct{ DB *sql.DB }
+type API struct {
+	DB     *sql.DB
+	Design *sql.DB
+}
 type input struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -55,7 +58,7 @@ func dbError(w http.ResponseWriter, err error) {
 	fail(w, 500)
 }
 func (a API) Routes() []rest.Route {
-	return []rest.Route{
+	return append([]rest.Route{
 		{Method: "POST", Path: "/api/v2/login", Handler: a.handle},
 		{Method: "POST", Path: "/api/v2/logout", Handler: a.handle},
 		{Method: "GET", Path: "/api/v2/me", Handler: a.handle},
@@ -65,7 +68,7 @@ func (a API) Routes() []rest.Route {
 		{Method: "POST", Path: "/api/v2/projects/:project/environments", Handler: a.handle},
 		{Method: "GET", Path: "/api/v2/projects/:project/members", Handler: a.handle},
 		{Method: "POST", Path: "/api/v2/projects/:project/members", Handler: a.handle},
-	}
+	}, a.designRoutes()...)
 }
 func audit(r *http.Request, tx *sql.Tx, user, project, action, resource, result string) error {
 	_, err := tx.ExecContext(r.Context(), `INSERT INTO audit_events(actor_id,project_id,request_id,action,resource_type,resource_id,result) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7)`, user, project, ID(), action, action, resource, result)
@@ -122,6 +125,10 @@ func (a API) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if err != nil {
 		dbError(w, err)
+		return
+	}
+	if strings.Contains(path, "/design/") {
+		a.handleDesign(w, r, u, path)
 		return
 	}
 	if path == "me" {

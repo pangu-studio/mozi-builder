@@ -67,7 +67,7 @@ CLI 只从进程环境或显式 `-env-file` 读取 `MOZI_DB` 与 `MOZI_PLATFORM_
 
 首批设计库表为 `design_projects`。平台库包括 `users`、`projects`、`project_members`、`environments`、`audit_events`、`sessions` 和 `login_limits`。跨库使用相同项目 ID，不建立外键或跨库事务。
 
-平台 API、用户创建命令、会话、项目/环境/成员权限及事务审计已实现。启动方式、接口和当前限制见 [平台 API](../docs/v2/platform-api.md)。前端接入与运行账号分权仍待实现。
+平台 API、用户创建命令、会话、项目/环境/成员权限及事务审计已实现。启动方式、接口和当前限制见 [平台 API](../docs/v2/platform-api.md)。控制台已接入；运行账号分权仍待实现。
 
 ## 测试
 
@@ -95,6 +95,8 @@ cd platform && go test -race ./...
 
 需要先用 `platform-user` 创建账号，流程见 [平台 API](../docs/v2/platform-api.md)。前端没有默认密码。会话保存在当前标签页的 sessionStorage；接口 401 清理会话并返回登录页，网络故障则显示重试。线上静态部署需将 `/api/v2` 配置为同源 HTTPS 反向代理。
 
-切换项目销毁旧环境视图并取消请求，角色只控制按钮展示，最终由后端授权。当前环境页在 shell 中，设计器继续通过 micro-app 加载且明确为演示内容；真实项目模型隔离在阶段 2 接入。原阶段 0 实验入口保留在 `/lab.html#designer`，不连接业务数据。
+切换项目销毁旧环境视图并取消请求，角色只控制按钮展示，最终由后端授权。当前环境页在 shell 中，设计器通过 micro-app 加载真实项目模型，支持字段编辑、完整扩展 JSON、版本冲突和历史快照；详见 [项目模型](../docs/v2/project-models.md)。原阶段 0 实验入口保留在 `/lab.html#designer`，不连接业务数据。
+
+基座和设计器采用独立构建图，设计器资产输出到 `dist/designer/assets/`，避免 iframe 加载时与基座共用分块。
 
 浏览器测试：先 `npm run build`，再 `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`（或安装 Playwright 浏览器后省略该变量）。测试使用独立 `15172` 端口与模拟 API，覆盖会话、创建、项目切换、错误重试和微前端生命周期；真实 PostgreSQL 权限由后端集成测试验证。列表暂受后端 500 条上限约束，界面每页展示 10 条。

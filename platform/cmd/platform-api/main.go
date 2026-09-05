@@ -23,6 +23,11 @@ func main() {
 		log.Fatal("database schema verification failed")
 	}
 	defer db.Close()
+	designDB, err := control.OpenDesign(ctx)
+	if err != nil {
+		log.Fatal("design database verification failed")
+	}
+	defer designDB.Close()
 	var c rest.RestConf
 	if err = conf.FillDefault(&c); err != nil {
 		log.Fatal(err)
@@ -38,6 +43,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer server.Stop()
-	server.AddRoutes(control.API{DB: db}.Routes())
+	server.AddRoutes(control.API{DB: db, Design: designDB}.Routes())
 	server.Start()
 }

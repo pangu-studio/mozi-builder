@@ -7,8 +7,15 @@ import axios from "axios";
 import { MoziBuilderProvider } from "../../../builder-react/MoziBuilderProvider";
 import Guide from "../../../builder-react/pages/Guide";
 import "./style.css";
+import ModelsWorkspace, { type DesignContext } from "./ModelsWorkspace";
 
-type Context = { protocolVersion?: number; theme?: string };
+type Context = {
+  protocolVersion?: number;
+  theme?: string;
+  project?: DesignContext["project"];
+  request?: DesignContext["request"];
+  onDirty?: DesignContext["onDirty"];
+};
 const bridge = (
   window as Window & {
     microApp?: {
@@ -61,8 +68,17 @@ function Probe() {
 }
 function Designer() {
   const [dark, setDark] = useState(false);
+  const [projectContext, setProjectContext] = useState<DesignContext | null>(
+    null,
+  );
   useEffect(() => {
     const receive = (data: Context) => {
+      if (
+        data.protocolVersion === 2 &&
+        data.project &&
+        typeof data.request === "function"
+      )
+        setProjectContext(data as DesignContext);
       if (data.protocolVersion === 1) setDark(data.theme === "dark");
     };
     bridge?.addDataListener(receive, true);
@@ -86,15 +102,19 @@ function Designer() {
           className={`designer ${dark ? "dark" : ""}`}
           data-testid="designer-app"
         >
-          <MemoryRouter initialEntries={["/designer/guide"]}>
-            <MoziBuilderProvider
-              apiClient={client}
-              routeBasePath="/designer"
-              guideMarkdown={guide}
-            >
-              <Probe />
-            </MoziBuilderProvider>
-          </MemoryRouter>
+          {projectContext ? (
+            <ModelsWorkspace context={projectContext} />
+          ) : (
+            <MemoryRouter initialEntries={["/designer/guide"]}>
+              <MoziBuilderProvider
+                apiClient={client}
+                routeBasePath="/designer"
+                guideMarkdown={guide}
+              >
+                <Probe />
+              </MoziBuilderProvider>
+            </MemoryRouter>
+          )}
         </div>
       </App>
     </ConfigProvider>
