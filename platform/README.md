@@ -65,7 +65,9 @@ make v2-migrate-verify
 
 CLI 只从进程环境或显式 `-env-file` 读取 `MOZI_DB` 与 `MOZI_PLATFORM_DB`，忽略文件中的其他变量。根目录本地 `.env` 包含两个受限账号，必须保持 Git 忽略。
 
-首批设计库表为 `design_projects`。首批平台库表为 `users`、`projects`、`project_members`、`environments` 和 append-only 语义的 `audit_events`。跨库使用相同项目 ID，不建立外键或跨库事务。认证、项目 API 和应用角色的数据库授权仍在后续变更中实现。
+首批设计库表为 `design_projects`。平台库包括 `users`、`projects`、`project_members`、`environments`、`audit_events`、`sessions` 和 `login_limits`。跨库使用相同项目 ID，不建立外键或跨库事务。
+
+平台 API、用户创建命令、会话、项目/环境/成员权限及事务审计已实现。启动方式、接口和当前限制见 [平台 API](../docs/v2/platform-api.md)。前端接入与运行账号分权仍待实现。
 
 ## 测试
 
