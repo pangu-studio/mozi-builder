@@ -1,0 +1,38 @@
+[[/* go-zero .api contract rendered from ServiceIR. Field numbers are a proto concern and intentionally absent here; JSON wire format is by name. */ -]]
+syntax = "v1"
+
+info(
+    title: "[[.Label]]"
+    [[- if .Service.Description]]
+    desc: "[[.Service.Description]]"
+    [[- end]]
+)
+[[- range .Messages]]
+
+type [[.Name]] {
+    [[- range .Fields]]
+    [[.JSONName]] [[.GoType]] `json:"[[.Name]]"`
+    [[- end]]
+}
+[[- end]]
+[[- if .AuthedHTTP]]
+
+@server(
+    jwt: Auth
+)
+service [[.Module]]-api {
+    [[- range .AuthedHTTP]]
+    @handler [[.Name]]
+    [[.Method | lower]] [[.Path]][[if .HasRequest]] ([[.Request]])[[end]] returns ([[.Response]])
+    [[- end]]
+}
+[[- end]]
+[[- if .PublicHTTP]]
+
+service [[.Module]]-public-api {
+    [[- range .PublicHTTP]]
+    @handler [[.Name]]
+    [[.Method | lower]] [[.Path]][[if .HasRequest]] ([[.Request]])[[end]] returns ([[.Response]])
+    [[- end]]
+}
+[[- end]]

@@ -1,0 +1,29 @@
+[[/* HTTP handler skeleton. mozi:section blocks are regenerated on service updates; code outside markers (business logic) is preserved by generator.ReplaceMarkerSection. */ -]]
+package handler
+
+import (
+	"net/http"
+
+	"github.com/zeromicro/go-zero/rest/httpx"
+)
+
+[[- range .HTTP]]
+// [[.Name]] handles [[.Method]] [[.Path]].
+func [[.Name]](w http.ResponseWriter, r *http.Request) {
+	// mozi:section [[.Name]]Request — generated request plumbing
+	[[- if .HasRequest]]
+	var req [[.Request]]
+	if err := httpx.Parse(r, &req); err != nil {
+		httpx.Error(w, err)
+		return
+	}
+	_ = req
+	[[- end]]
+	// mozi:end [[.Name]]Request
+
+	// TODO: implement [[.Name]] business logic here. This region is
+	// handwritten and preserved across regeneration.
+	httpx.OkJson(w, nil)
+}
+
+[[end]]

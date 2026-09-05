@@ -85,3 +85,9 @@
 - 根模块新增 ServiceIR 类型、`mozi/service` 校验与编号规则、differ 的 ServiceIR 兼容性分类；纯新增，v1 回归通过。
 - 设计库 `0003_services` 新增 design_services / design_service_history，复用模型的乐观版本与不可变历史模式；`design/services` 接口与模型接口共用同一鉴权与版本协议。
 - 验证：平台 go test -race 覆盖服务文档的同名隔离、跨项目六类接口拒绝、viewer 只读、428/409、并发仅一次成功、reserved 编号复用拒绝、历史失败回滚与删除保留；双库 verify 通过。控制台服务编辑界面、ChangePlan 接入与示例服务在 PR-C/D/E。
+
+### 阶段 3：HTTP 生成模板（PR-C）
+
+- 根模块新增 `ServiceTemplateContext` 与 `generator.ExecuteService`；模板 `service/api.tmpl` 渲染 go-zero .api（消息类型、jwt 分组与 public 分组），`service/handler.go.tmpl` 渲染 handler 骨架，请求装配在 `mozi:section` 标记内、业务逻辑在标记外。
+- ent schema 复用既有 `backend/schema.go.tmpl`（ModelIR → ent），无重复模板。
+- 验证：golden 文件测试（`-update` 刷新）、marker 抽取/替换/追加单测、增量再生成保留手写业务逻辑的端到端测试；根模块 go test 与 go vet 通过。ChangePlan 接入与示例服务运行在 PR-D。

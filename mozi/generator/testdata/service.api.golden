@@ -1,0 +1,32 @@
+syntax = "v1"
+
+info(
+    title: "内容服务"
+    desc: "牌组与卡片的读写契约"
+)
+
+type DeckSummary {
+    id string `json:"id"`
+    title string `json:"title"`
+    dueAt time.Time `json:"due_at"`
+}
+
+type CreateDeckRequest {
+    title string `json:"title"`
+    tags []string `json:"tags"`
+}
+
+@server(
+    jwt: Auth
+)
+service content-api {
+    @handler ListDecks
+    get /api/content/decks returns (DeckSummary)
+    @handler CreateDeck
+    post /api/content/decks (CreateDeckRequest) returns (DeckSummary)
+}
+
+service content-public-api {
+    @handler DeckHealth
+    get /api/content/health returns (DeckSummary)
+}
