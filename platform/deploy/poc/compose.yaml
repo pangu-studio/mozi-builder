@@ -1,0 +1,55 @@
+name: mozi-v2-poc
+x-etcd: &etcd
+  image: gcr.io/etcd-development/etcd:v3.5.21
+  command: [etcd, --listen-client-urls=http://0.0.0.0:2379, --advertise-client-urls=http://localhost:2379, --data-dir=/data]
+  healthcheck:
+    test: [CMD, etcdctl, endpoint, health]
+    interval: 3s
+    timeout: 2s
+    retries: 20
+x-probe: &probe
+  image: mozi-v2-poc-probe:local
+services:
+  registry:
+    <<: *etcd
+    volumes: [registry-data:/data]
+  gateway-store:
+    <<: *etcd
+    volumes: [gateway-data:/data]
+  apisix:
+    image: apache/apisix:3.18.0-debian
+    volumes: [./config.yaml:/usr/local/apisix/conf/config.yaml:ro]
+    ports: [127.0.0.1:19080:9080]
+    depends_on:
+      gateway-store: {condition: service_healthy}
+  rpc:
+    <<: *probe
+    build:
+      context: ../..
+      dockerfile: deploy/poc/Dockerfile
+    command: [--mode=rpc]
+    depends_on:
+      registry: {condition: service_healthy}
+  api:
+    <<: *probe
+    command: [--mode=api]
+    depends_on:
+      registry: {condition: service_healthy}
+      rpc: {condition: service_started}
+  controller:
+    <<: *probe
+    command: [--mode=controller]
+    environment:
+      APISIX_ADMIN_KEY: mozi-v2-local-poc-only
+    depends_on:
+      registry: {condition: service_healthy}
+      apisix: {condition: service_started}
+  dkron:
+    image: dkron/dkron:4.1.3
+    command: [agent, --server, --bootstrap-expect=1, --node-name=poc, --data-dir=/data, --disable-usage-stats]
+    ports: [127.0.0.1:18081:8080]
+    volumes: [dkron-data:/data]
+volumes:
+  registry-data:
+  gateway-data:
+  dkron-data:

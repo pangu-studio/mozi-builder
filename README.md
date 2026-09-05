@@ -363,3 +363,11 @@ git push origin v0.2.1
 - 生成代码必须与手写代码和平共存
 
 后续演进计划见 [docs/evolution-roadmap.md](docs/evolution-roadmap.md)。
+
+## v2 开发平台
+
+v2 已启动独立开发：go-zero、APISIX、etcd、Dkron 和 micro-app，部署目标为 Docker Compose。当前提供隔离的阶段 0 集成实验，尚未提供生产平台能力。
+
+- [架构与阶段计划](docs/v2/architecture.md)
+- [实际进度与验收记录](docs/v2/progress.md)
+- [运行集成实验](platform/README.md)

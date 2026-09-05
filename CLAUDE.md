@@ -102,3 +102,11 @@ Generated code uses marker comments for safe incremental updates: `// mozi:secti
 - Model names are PascalCase; table names are snake_case plural
 - The design database is the source of truth; YAML files in `models/` are export snapshots
 - The manifest (`.mozi/manifest.json`) tracks which model versions have been applied to code — use `mozi sync` to update it
+
+## v2 platform work
+
+User-approved architecture and delivery milestones live in `docs/v2/architecture.md` and `docs/v2/progress.md`. Deployment targets Docker Compose; Kubernetes is out of scope.
+
+`platform/` is a separate Go module. Root tests do not cover it: run `make v2-test` as well. `platform/web/` is an isolated micro-app integration host, not yet the production console. Keep the v1 Gin embedding and builder-react package compatible.
+
+The phase-0 Compose fixture never reads `.env` or touches PostgreSQL. The real v2 design/platform databases must be new dedicated databases (`mozi_v2_design`, `mozi_v2_platform`), with explicit configuration and no fallback to any existing database. Never run v1 `mozi init` defaults against v2.
