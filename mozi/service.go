@@ -56,14 +56,14 @@ type MessageFieldIR struct {
 
 // HTTPRouteIR is one HTTP operation, rendered to a go-zero .api route.
 type HTTPRouteIR struct {
-	Name         string   `yaml:"name" json:"name"`
-	Method       string   `yaml:"method" json:"method"` // GET | POST | PUT | DELETE | PATCH
-	Path         string   `yaml:"path" json:"path"`     // e.g. /api/content/decks
-	Request      string   `yaml:"request,omitempty" json:"request,omitempty"`   // message name; empty for bodyless ops
-	Response     string   `yaml:"response" json:"response"`                     // message name
-	Auth         string   `yaml:"auth,omitempty" json:"auth,omitempty"`         // jwt | admin | public
-	Idempotency  string   `yaml:"idempotency,omitempty" json:"idempotency,omitempty"`
-	ErrorCodes   []string `yaml:"error_codes,omitempty" json:"error_codes,omitempty"` // references ErrorCodeIR.Code
+	Name        string   `yaml:"name" json:"name"`
+	Method      string   `yaml:"method" json:"method"`                       // GET | POST | PUT | DELETE | PATCH
+	Path        string   `yaml:"path" json:"path"`                           // e.g. /api/content/decks
+	Request     string   `yaml:"request,omitempty" json:"request,omitempty"` // message name; empty for bodyless ops
+	Response    string   `yaml:"response" json:"response"`                   // message name
+	Auth        string   `yaml:"auth,omitempty" json:"auth,omitempty"`       // jwt | admin | public
+	Idempotency string   `yaml:"idempotency,omitempty" json:"idempotency,omitempty"`
+	ErrorCodes  []string `yaml:"error_codes,omitempty" json:"error_codes,omitempty"` // references ErrorCodeIR.Code
 }
 
 // RPCMethodIR is one RPC operation, rendered to a gRPC method via .proto.

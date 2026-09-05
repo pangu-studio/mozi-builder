@@ -1,6 +1,7 @@
 package control
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -12,13 +13,67 @@ import (
 	"github.com/zeromicro/go-zero/rest"
 )
 
+// designCollection abstracts the models and services design tables behind one
+// HTTP contract: project-scoped auth, opaque optimistic versions, append-only
+// history, and identical status codes (404/403/428/409/400).
+type designCollection struct {
+	list    func(ctx context.Context, project string) (any, error)
+	get     func(ctx context.Context, project, module, name string) (any, error)
+	history func(ctx context.Context, project, module, name string) (any, error)
+	save    func(ctx context.Context, scope design.Scope, module, name, expected string, body json.RawMessage, action string) (any, error)
+	ident   func(body json.RawMessage) (module, name string, err error)
+}
+
+func designCollections(store design.Store) map[string]designCollection {
+	return map[string]designCollection{
+		"models": {
+			list: func(ctx context.Context, p string) (any, error) { return store.List(ctx, p) },
+			get:  func(ctx context.Context, p, m, n string) (any, error) { return store.Get(ctx, p, m, n) },
+			history: func(ctx context.Context, p, m, n string) (any, error) {
+				return store.History(ctx, p, m, n)
+			},
+			save: func(ctx context.Context, s design.Scope, m, n, e string, b json.RawMessage, a string) (any, error) {
+				return store.Save(ctx, s, m, n, e, b, a)
+			},
+			ident: func(body json.RawMessage) (string, string, error) {
+				v, err := design.Validate(body)
+				if err != nil {
+					return "", "", err
+				}
+				return v.Module, v.Name, nil
+			},
+		},
+		"services": {
+			list: func(ctx context.Context, p string) (any, error) { return store.ListServices(ctx, p) },
+			get:  func(ctx context.Context, p, m, n string) (any, error) { return store.GetService(ctx, p, m, n) },
+			history: func(ctx context.Context, p, m, n string) (any, error) {
+				return store.ServiceHistory(ctx, p, m, n)
+			},
+			save: func(ctx context.Context, s design.Scope, m, n, e string, b json.RawMessage, a string) (any, error) {
+				return store.SaveService(ctx, s, m, n, e, b, a)
+			},
+			ident: func(body json.RawMessage) (string, string, error) {
+				v, err := design.ValidateService(body)
+				if err != nil {
+					return "", "", err
+				}
+				return v.Module, v.Name, nil
+			},
+		},
+	}
+}
+
 func (a API) designRoutes() []rest.Route {
-	root := "/api/v2/projects/:project/design/models"
-	return []rest.Route{{Method: "GET", Path: root, Handler: a.handle}, {Method: "POST", Path: root, Handler: a.handle}, {Method: "GET", Path: root + "/:module/:name", Handler: a.handle}, {Method: "PUT", Path: root + "/:module/:name", Handler: a.handle}, {Method: "DELETE", Path: root + "/:module/:name", Handler: a.handle}, {Method: "GET", Path: root + "/:module/:name/history", Handler: a.handle}}
+	var routes []rest.Route
+	for _, kind := range []string{"models", "services"} {
+		root := "/api/v2/projects/:project/design/" + kind
+		routes = append(routes, rest.Route{Method: "GET", Path: root, Handler: a.handle}, rest.Route{Method: "POST", Path: root, Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "PUT", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "DELETE", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/history", Handler: a.handle})
+	}
+	return routes
 }
 func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path string) {
 	parts := strings.Split(path, "/")
-	if len(parts) < 4 || parts[0] != "projects" || parts[2] != "design" || parts[3] != "models" {
+	if len(parts) < 4 || parts[0] != "projects" || parts[2] != "design" {
 		fail(w, 404)
 		return
 	}
@@ -51,7 +106,11 @@ func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path s
 		fail(w, 503)
 		return
 	}
-	store := design.Store{DB: a.Design}
+	collection, ok := designCollections(design.Store{DB: a.Design})[parts[3]]
+	if !ok {
+		fail(w, 404)
+		return
+	}
 	module, name := "", ""
 	if len(parts) >= 6 {
 		module, name = parts[4], parts[5]
@@ -60,15 +119,15 @@ func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path s
 		var result any
 		switch len(parts) {
 		case 4:
-			result, err = store.List(r.Context(), scope.ID)
+			result, err = collection.list(r.Context(), scope.ID)
 		case 6:
-			result, err = store.Get(r.Context(), scope.ID, module, name)
+			result, err = collection.get(r.Context(), scope.ID, module, name)
 		case 7:
 			if parts[6] != "history" {
 				fail(w, 404)
 				return
 			}
-			result, err = store.History(r.Context(), scope.ID, module, name)
+			result, err = collection.history(r.Context(), scope.ID, module, name)
 		default:
 			fail(w, 404)
 			return
@@ -98,12 +157,11 @@ func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path s
 	action := "updated"
 	if r.Method == "POST" {
 		action = "created"
-		m, e := design.Validate(input.Document)
-		if e != nil {
+		module, name, err = collection.ident(input.Document)
+		if err != nil {
 			fail(w, 400)
 			return
 		}
-		module, name = m.Module, m.Name
 	}
 	if r.Method == "DELETE" {
 		action = "deleted"
@@ -112,13 +170,13 @@ func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path s
 		reply(w, 428, map[string]string{"error": "version_required"})
 		return
 	}
-	result, err := store.Save(r.Context(), scope, module, name, input.Version, input.Document, action)
+	result, err := collection.save(r.Context(), scope, module, name, input.Version, input.Document, action)
 	if errors.Is(err, design.ErrConflict) {
-		reply(w, 409, map[string]string{"error": "model_conflict"})
+		reply(w, 409, map[string]string{"error": parts[3][:len(parts[3])-1] + "_conflict"})
 		return
 	}
 	if errors.Is(err, design.ErrInvalid) {
-		reply(w, 400, map[string]string{"error": "invalid_model"})
+		reply(w, 400, map[string]string{"error": "invalid_" + parts[3][:len(parts[3])-1]})
 		return
 	}
 	if err != nil {
