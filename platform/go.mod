@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/pangu-studio/mozi-builder v0.2.4-0.20260905105557-08bc0127a34b
+	github.com/pangu-studio/mozi-builder v0.2.4-0.20260905141822-64fd03bb8d61
 	github.com/zeromicro/go-zero v1.10.3
 	go.etcd.io/etcd/client/v3 v3.5.21
 	golang.org/x/crypto v0.48.0

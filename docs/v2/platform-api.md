@@ -47,6 +47,12 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 此阶段项目只登记在平台库；设计库的 design_projects 和模型作用域在阶段 2 接入，不做双库事务。当前没有项目删除、owner 转移、环境部署或审计检索接口。
 
+## 设计服务契约（阶段 3）
+
+服务契约（ServiceIR）接口前缀 `/api/v2/projects/:project/design/services`，与阶段 2 模型接口逐项对齐：列表上限 500、POST 同名 409、PUT/DELETE 缺版本 428、版本不匹配 409、跨项目或非成员 404、viewer 只读、删除保留历史（历史最近 100 条）。请求体为 `{ "document": <ServiceIR> }`，PUT/DELETE 另带读取时的 `version`。
+
+文档经根模块 `mozi/service` 校验：拒绝未知属性、非法标识、无效字段类型、消息/路由引用缺失、proto 编号越界或落入 19000–19999、复用 reserved 编号或字段名。字段编号规则与破坏性变更分类见 [service-ir.md](service-ir.md)。模型与服务不互相级联删除；服务引用不存在模型由后续 lint 报告，不在写入时阻断。
+
 ## 验证
 
 ```sh

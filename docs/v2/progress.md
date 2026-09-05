@@ -78,3 +78,10 @@
 - 边界和契约见 [project-models.md](project-models.md)：高级定义目前为 JSON 编辑，模块由模型归属表达，完整模块管理、关系解析及生成流程后续完善。
 
 - 设计库 `0002_models` 已应用，双库 verify 通过，本地 API 已更新。平台竞态测试与 go vet、v1 全量回归、十项浏览器用例、Ant Design lint 与构建均通过。设计器改为独立构建，修复共享分块在 iframe 内偶发停滞。
+
+### 阶段 3：服务契约（PR-A/B）
+
+- 设计契约见 [service-ir.md](service-ir.md)：ServiceIR 与 ModelIR 并列，proto 字段编号显式存储，HTTP 链路优先、proto/RPC 模板排后（PR-E）。
+- 根模块新增 ServiceIR 类型、`mozi/service` 校验与编号规则、differ 的 ServiceIR 兼容性分类；纯新增，v1 回归通过。
+- 设计库 `0003_services` 新增 design_services / design_service_history，复用模型的乐观版本与不可变历史模式；`design/services` 接口与模型接口共用同一鉴权与版本协议。
+- 验证：平台 go test -race 覆盖服务文档的同名隔离、跨项目六类接口拒绝、viewer 只读、428/409、并发仅一次成功、reserved 编号复用拒绝、历史失败回滚与删除保留；双库 verify 通过。控制台服务编辑界面、ChangePlan 接入与示例服务在 PR-C/D/E。
