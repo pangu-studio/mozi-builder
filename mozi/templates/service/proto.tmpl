@@ -1,0 +1,28 @@
+[[/* proto3 contract rendered from ServiceIR. Field numbers come from the IR verbatim — never renumbered here. Deleted fields stay reserved. */ -]]
+syntax = "proto3";
+
+package [[.Module]];
+
+option go_package = "./[[.Module]]";
+[[- range .Messages]]
+
+message [[.Name]] {
+	[[- range .Fields]]
+	[[if .Repeated]]repeated [[end]][[.ProtoType]] [[.Name]] = [[.Number]];
+	[[- end]]
+	[[- if .ReservedNumbersText]]
+	reserved [[.ReservedNumbersText]];
+	[[- end]]
+	[[- if .ReservedNamesText]]
+	reserved [[join .ReservedNamesText ", "]];
+	[[- end]]
+}
+[[- end]]
+[[- if .RPC]]
+
+service [[.Name]] {
+	[[- range .RPC]]
+	rpc [[.Name]]([[.Request]]) returns ([[.Response]]);
+	[[- end]]
+}
+[[- end]]

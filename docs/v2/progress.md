@@ -99,3 +99,8 @@
 - `TestExampleServesHTTP` 用 httptest 起真实服务：health/list/create 三个端点 200 且响应正确，畸形 JSON 被生成的解析装配拒绝。
 - 附带修复：marker 拼接幂等性（SpliceRendered dedent）与空 section 空白行，见根模块 PR。
 - 阶段 3 剩余：proto/RPC 模板与 RPC 示例（PR-E）；阶段退出条件中 HTTP 部分已达成。
+### 阶段 3：HTTP 生成模板（PR-C）
+
+- 根模块新增 `ServiceTemplateContext` 与 `generator.ExecuteService`；模板 `service/api.tmpl` 渲染 go-zero .api（消息类型、jwt 分组与 public 分组），`service/handler.go.tmpl` 渲染 handler 骨架，请求装配在 `mozi:section` 标记内、业务逻辑在标记外。
+- ent schema 复用既有 `backend/schema.go.tmpl`（ModelIR → ent），无重复模板。
+- 验证：golden 文件测试（`-update` 刷新）、marker 抽取/替换/追加单测、增量再生成保留手写业务逻辑的端到端测试；根模块 go test 与 go vet 通过。ChangePlan 接入与示例服务运行在 PR-D。

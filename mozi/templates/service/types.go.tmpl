@@ -1,0 +1,15 @@
+[[/* Go request/response types rendered from ServiceIR messages. JSON wire format is by field name; proto field numbers are emitted only by the .proto template. */ -]]
+package [[.Package]]
+[[- if .HasTime]]
+
+import "time"
+[[- end]]
+[[- range .Messages]]
+
+// [[.Name]] is a message of the [[$.Name]] contract.
+type [[.Name]] struct {
+	[[- range .Fields]]
+	[[.GoName]] [[.GoType]] `json:"[[.Name]]"`
+	[[- end]]
+}
+[[- end]]
