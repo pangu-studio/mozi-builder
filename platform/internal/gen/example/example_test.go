@@ -83,11 +83,7 @@ func TestHandlerMarkersMatchRender(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	merged := string(committed)
-	for _, s := range generator.ExtractMarkerSections(fresh) {
-		merged = generator.ReplaceMarkerSection(merged, s.Name, "section", s.Content)
-	}
-	if merged != string(committed) {
+	if merged := generator.SpliceRendered(string(committed), fresh); merged != string(committed) {
 		t.Fatal("handler_gen.go marker sections stale; regenerate with MOZI_REGEN_EXAMPLE=1")
 	}
 }
@@ -108,11 +104,7 @@ func TestRegenerate(t *testing.T) {
 	if err != nil {
 		existing = []byte(fresh)
 	}
-	merged := string(existing)
-	for _, s := range generator.ExtractMarkerSections(fresh) {
-		merged = generator.ReplaceMarkerSection(merged, s.Name, "section", s.Content)
-	}
-	if merged != string(existing) {
+	if merged := generator.SpliceRendered(string(existing), fresh); merged != string(existing) {
 		if err := os.WriteFile("handler_gen.go", []byte(merged), 0o644); err != nil {
 			t.Fatal(err)
 		}

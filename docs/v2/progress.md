@@ -91,3 +91,11 @@
 - ChangePlan 装配逻辑从 devplatform 原样抽取到根模块 `mozi/changeplan`（纯函数，无 gin/v1 设计库依赖）；v1 以类型别名 + 薄适配层保持 CLI 与 HTTP 行为不变，回归通过。
 - 平台新增 `GET .../design/models/:module/:name/change-plan`：design_models 当前文档对上一历史快照做 differ 对比，装配 AI Coding 契约；v2 无 manifest，状态为 pending / no_diff。
 - 验证：真实双库 race 测试覆盖创建后 pending、更新后差异、viewer 可读、跨项目 404、services 集合 404；平台 go test -race 与 go vet 全绿。示例 HTTP 服务（渲染产物可运行）在 PR-D2，依赖模板 PR 合并。
+
+### 阶段 3：示例 HTTP 服务可运行（PR-D2）
+
+- `platform/internal/gen/example/`：fixture ServiceIR（docs/v2/service-ir.md 同款）渲染出 `types_gen.go` 与 `handler_gen.go`，提交产物随 platform 编译；业务逻辑手写在标记外。
+- 再生成工作流 `MOZI_REGEN_EXAMPLE=1 go test ./internal/gen/example/ -run TestRegenerate`：types 全量重写，handler 经 `generator.SpliceRendered` 只替换标记段；测试断言已提交产物与新渲染恒等（手写逻辑保留）。
+- `TestExampleServesHTTP` 用 httptest 起真实服务：health/list/create 三个端点 200 且响应正确，畸形 JSON 被生成的解析装配拒绝。
+- 附带修复：marker 拼接幂等性（SpliceRendered dedent）与空 section 空白行，见根模块 PR。
+- 阶段 3 剩余：proto/RPC 模板与 RPC 示例（PR-E）；阶段退出条件中 HTTP 部分已达成。
