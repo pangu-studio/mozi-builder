@@ -9,6 +9,7 @@ import (
 // ListDecks handles GET /api/content/decks.
 func ListDecks(w http.ResponseWriter, r *http.Request) {
 	// mozi:section ListDecksRequest — generated request plumbing
+	_ = r
 	// mozi:end ListDecksRequest
 
 	// TODO: implement ListDecks business logic here. This region is
@@ -35,6 +36,7 @@ func CreateDeck(w http.ResponseWriter, r *http.Request) {
 // DeckHealth handles GET /api/content/health.
 func DeckHealth(w http.ResponseWriter, r *http.Request) {
 	// mozi:section DeckHealthRequest — generated request plumbing
+	_ = r
 	// mozi:end DeckHealthRequest
 
 	// TODO: implement DeckHealth business logic here. This region is

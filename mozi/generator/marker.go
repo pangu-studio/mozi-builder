@@ -106,6 +106,32 @@ func ReplaceMarkerSection(source, sectionName, sectionType, newContent string) s
 	return strings.TrimRight(source, "\n") + newSection
 }
 
+// SpliceRendered replaces every marker section in target with the same-named
+// section from rendered. Rendered content is dedented by its own marker
+// indentation before ReplaceMarkerSection re-indents it for the target, so
+// splicing a fresh render into itself is an identity operation and
+// handwritten code outside the markers is preserved.
+func SpliceRendered(target, rendered string) string {
+	out := target
+	for _, s := range ExtractMarkerSections(rendered) {
+		out = ReplaceMarkerSection(out, s.Name, "section", dedentLines(s.Content, extractIndent(s.Start)))
+	}
+	return out
+}
+
+// dedentLines removes the shared marker indentation from rendered section
+// content; ReplaceMarkerSection re-applies the target indentation.
+func dedentLines(content, indent string) string {
+	if content == "" || indent == "" {
+		return content
+	}
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		lines[i] = strings.TrimPrefix(line, indent)
+	}
+	return strings.Join(lines, "\n")
+}
+
 func extractIndent(line string) string {
 	for i, c := range line {
 		if c != ' ' && c != '\t' {
@@ -117,7 +143,7 @@ func extractIndent(line string) string {
 
 func indentLines(content, indent string) string {
 	if content == "" {
-		return indent
+		return ""
 	}
 	lines := strings.Split(content, "\n")
 	for i, line := range lines {

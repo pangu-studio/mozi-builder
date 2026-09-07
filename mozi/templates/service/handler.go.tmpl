@@ -18,6 +18,8 @@ func [[.Name]](w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_ = req
+	[[- else ]]
+	_ = r
 	[[- end]]
 	// mozi:end [[.Name]]Request
 
