@@ -3,6 +3,7 @@ package generator
 import (
 	"bytes"
 	"fmt"
+	"go/format"
 	"io/fs"
 	"strings"
 	"text/template"
@@ -16,10 +17,12 @@ import (
 type ServiceTemplateContext struct {
 	Service *mozi.ServiceIR
 
-	Name   string // PascalCase: ContentService
-	Module string // content
-	Domain string
-	Label  string
+	Name    string // PascalCase: ContentService
+	Module  string // content
+	Domain  string
+	Label   string
+	Package string // Go package for generated types/handlers, default "handler"
+	HasTime bool   // any message field maps to time.Time
 
 	Messages   []ServiceMessageContext
 	HTTP       []ServiceRouteContext
@@ -39,6 +42,7 @@ type ServiceMessageContext struct {
 type ServiceFieldContext struct {
 	Name     string // snake_case, e.g. review_count
 	JSONName string // camelCase, e.g. reviewCount
+	GoName   string // PascalCase, e.g. ReviewCount
 	GoType   string // string, int, []DeckSummary, ...
 	Repeated bool
 	Number   int32
@@ -63,15 +67,21 @@ func BuildServiceContext(svc *mozi.ServiceIR) *ServiceTemplateContext {
 		Module:  svc.Module,
 		Domain:  svc.Domain,
 		Label:   svc.Label,
+		Package: "handler",
 		RPC:     svc.RPC,
 	}
 	for _, m := range svc.Messages {
 		mc := ServiceMessageContext{Name: m.Name, Description: m.Description}
 		for _, f := range m.Fields {
+			goType := messageFieldGoType(f)
+			if strings.Contains(goType, "time.Time") {
+				ctx.HasTime = true
+			}
 			mc.Fields = append(mc.Fields, ServiceFieldContext{
 				Name:     f.Name,
 				JSONName: snakeToCamel(f.Name),
-				GoType:   messageFieldGoType(f),
+				GoName:   snakeToPascal(f.Name),
+				GoType:   goType,
 				Repeated: f.Repeated,
 				Number:   f.Number,
 			})
@@ -115,8 +125,15 @@ func messageFieldGoType(f mozi.MessageFieldIR) string {
 	return base
 }
 
-// ExecuteService runs a service template against the given ServiceIR.
+// ExecuteService runs a service template against the given ServiceIR with a
+// default context (Package "handler").
 func (e *Engine) ExecuteService(templateName string, svc *mozi.ServiceIR) (string, error) {
+	return e.ExecuteServiceContext(templateName, BuildServiceContext(svc))
+}
+
+// ExecuteServiceContext runs a service template against a pre-built context,
+// allowing callers to override derived values such as Package.
+func (e *Engine) ExecuteServiceContext(templateName string, ctx *ServiceTemplateContext) (string, error) {
 	tmplContent, err := fs.ReadFile(e.templateFS, templateName)
 	if err != nil {
 		return "", fmt.Errorf("read template %s: %w", templateName, err)
@@ -126,8 +143,17 @@ func (e *Engine) ExecuteService(templateName string, svc *mozi.ServiceIR) (strin
 		return "", fmt.Errorf("parse template %s: %w", templateName, err)
 	}
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, BuildServiceContext(svc)); err != nil {
+	if err := tmpl.Execute(&buf, ctx); err != nil {
 		return "", fmt.Errorf("execute template %s: %w", templateName, err)
+	}
+	// Generated Go is always gofmt-formatted; a parse failure means the
+	// template produced invalid code and must be fixed, not shipped raw.
+	if strings.HasSuffix(templateName, ".go.tmpl") {
+		formatted, err := format.Source(buf.Bytes())
+		if err != nil {
+			return "", fmt.Errorf("format generated Go from %s: %w", templateName, err)
+		}
+		return string(formatted), nil
 	}
 	return buf.String(), nil
 }
