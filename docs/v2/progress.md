@@ -104,3 +104,9 @@
 - 根模块新增 `ServiceTemplateContext` 与 `generator.ExecuteService`；模板 `service/api.tmpl` 渲染 go-zero .api（消息类型、jwt 分组与 public 分组），`service/handler.go.tmpl` 渲染 handler 骨架，请求装配在 `mozi:section` 标记内、业务逻辑在标记外。
 - ent schema 复用既有 `backend/schema.go.tmpl`（ModelIR → ent），无重复模板。
 - 验证：golden 文件测试（`-update` 刷新）、marker 抽取/替换/追加单测、增量再生成保留手写业务逻辑的端到端测试；根模块 go test 与 go vet 通过。ChangePlan 接入与示例服务运行在 PR-D。
+
+### 阶段 3：RPC 示例可运行（PR-E）
+
+- `service/proto.tmpl` 渲染 proto3：字段编号原样取自 IR、删除字段 reserved 透传、RPC service 块；`ProtoType` 映射 int→int64、time→int64（unix 毫秒）等集中在 `ServiceFieldContext`。
+- `platform/internal/gen/rpcexample/`：渲染产物经纯 Go protocompile 解析验证（字段编号、reserved 编号与名称、service 方法），并用 bufconn + JSON codec 完成真实 gRPC 往返（`/content.ContentService/GetDeck`）。
+- 验证：平台 go test -race 全绿。示例用手写 ServiceDesc + JSON codec，未引入 protoc 代码生成；生产 goctl 工具链接入在发布阶段（阶段 6）评估。
