@@ -116,6 +116,10 @@ github.com/openzipkin/zipkin-go v0.4.3 h1:9EGwpqkgnwdEIJ+Od7QVSEIH+ocmm5nPat0G7s
 github.com/openzipkin/zipkin-go v0.4.3/go.mod h1:M9wCJZFWCo2RiY+o1eBCEMe0Dp2S5LDHcMZmk3RmK7c=
 github.com/pangu-studio/mozi-builder v0.2.4-0.20260905141822-64fd03bb8d61 h1:DGTbZAhzOH3/TLHlEX/Td+/E8wN0QxFfgkeiRaCSKmw=
 github.com/pangu-studio/mozi-builder v0.2.4-0.20260905141822-64fd03bb8d61/go.mod h1:4GklgZ2EXHuuPZN9OfMfJaeN2MoWuLcLhgduDBuAXl0=
+github.com/pangu-studio/mozi-builder v0.2.4-0.20260905162502-4e0c108087c4 h1:jhPYIUrKElHSyYU4oVYZ1nOJeXfhyUvdfYDe0iYrnxQ=
+github.com/pangu-studio/mozi-builder v0.2.4-0.20260905162502-4e0c108087c4/go.mod h1:4GklgZ2EXHuuPZN9OfMfJaeN2MoWuLcLhgduDBuAXl0=
+github.com/pangu-studio/mozi-builder v0.2.4-0.20260907023907-ef3d084e87e7 h1:pzGtp1xoYCH0fCcBJhlIuKiysGbgh5nQt3i/DUtmBJ8=
+github.com/pangu-studio/mozi-builder v0.2.4-0.20260907023907-ef3d084e87e7/go.mod h1:4GklgZ2EXHuuPZN9OfMfJaeN2MoWuLcLhgduDBuAXl0=
 github.com/pelletier/go-toml/v2 v2.4.3 h1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=
 github.com/pelletier/go-toml/v2 v2.4.3/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

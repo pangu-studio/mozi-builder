@@ -53,6 +53,8 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 文档经根模块 `mozi/service` 校验：拒绝未知属性、非法标识、无效字段类型、消息/路由引用缺失、proto 编号越界或落入 19000–19999、复用 reserved 编号或字段名。字段编号规则与破坏性变更分类见 [service-ir.md](service-ir.md)。模型与服务不互相级联删除；服务引用不存在模型由后续 lint 报告，不在写入时阻断。
 
+模型另有 `GET .../design/models/:module/:name/change-plan`：当前文档与上一历史快照的 differ 对比经根模块 `mozi/changeplan` 装配为 AI Coding 契约（意图、任务、验证项、prompt）。v2 没有代码清单（manifest），状态为 pending（有差异）或 no_diff（无差异）；services 集合暂无 change-plan。
+
 ## 验证
 
 ```sh

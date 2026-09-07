@@ -20,8 +20,11 @@ type designCollection struct {
 	list    func(ctx context.Context, project string) (any, error)
 	get     func(ctx context.Context, project, module, name string) (any, error)
 	history func(ctx context.Context, project, module, name string) (any, error)
-	save    func(ctx context.Context, scope design.Scope, module, name, expected string, body json.RawMessage, action string) (any, error)
-	ident   func(body json.RawMessage) (module, name string, err error)
+	// changePlan is optional; collections without it return 404 for the
+	// change-plan subresource.
+	changePlan func(ctx context.Context, project, module, name string) (any, error)
+	save       func(ctx context.Context, scope design.Scope, module, name, expected string, body json.RawMessage, action string) (any, error)
+	ident      func(body json.RawMessage) (module, name string, err error)
 }
 
 func designCollections(store design.Store) map[string]designCollection {
@@ -31,6 +34,9 @@ func designCollections(store design.Store) map[string]designCollection {
 			get:  func(ctx context.Context, p, m, n string) (any, error) { return store.Get(ctx, p, m, n) },
 			history: func(ctx context.Context, p, m, n string) (any, error) {
 				return store.History(ctx, p, m, n)
+			},
+			changePlan: func(ctx context.Context, p, m, n string) (any, error) {
+				return store.ChangePlan(ctx, p, m, n)
 			},
 			save: func(ctx context.Context, s design.Scope, m, n, e string, b json.RawMessage, a string) (any, error) {
 				return store.Save(ctx, s, m, n, e, b, a)
@@ -67,7 +73,7 @@ func (a API) designRoutes() []rest.Route {
 	var routes []rest.Route
 	for _, kind := range []string{"models", "services"} {
 		root := "/api/v2/projects/:project/design/" + kind
-		routes = append(routes, rest.Route{Method: "GET", Path: root, Handler: a.handle}, rest.Route{Method: "POST", Path: root, Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "PUT", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "DELETE", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/history", Handler: a.handle})
+		routes = append(routes, rest.Route{Method: "GET", Path: root, Handler: a.handle}, rest.Route{Method: "POST", Path: root, Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "PUT", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "DELETE", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/history", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/change-plan", Handler: a.handle})
 	}
 	return routes
 }
@@ -123,11 +129,19 @@ func (a API) handleDesign(w http.ResponseWriter, r *http.Request, u User, path s
 		case 6:
 			result, err = collection.get(r.Context(), scope.ID, module, name)
 		case 7:
-			if parts[6] != "history" {
+			switch parts[6] {
+			case "history":
+				result, err = collection.history(r.Context(), scope.ID, module, name)
+			case "change-plan":
+				if collection.changePlan == nil {
+					fail(w, 404)
+					return
+				}
+				result, err = collection.changePlan(r.Context(), scope.ID, module, name)
+			default:
 				fail(w, 404)
 				return
 			}
-			result, err = collection.history(r.Context(), scope.ID, module, name)
 		default:
 			fail(w, 404)
 			return
