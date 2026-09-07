@@ -53,3 +53,22 @@ func TestReplaceMarkerSectionAppendsMissing(t *testing.T) {
 		t.Fatal("existing sections must stay intact when appending")
 	}
 }
+
+func TestSpliceRenderedIdempotent(t *testing.T) {
+	rendered := "package x\n\nfunc f() {\n\t// mozi:section Req — plumbing\n\tvar req T\n\t_ = req\n\t// mozi:end Req\n\n\thandwritten()\n}\n"
+	if out := SpliceRendered(rendered, rendered); out != rendered {
+		t.Fatalf("splicing a fresh render into itself must be identity:\n%s", out)
+	}
+}
+
+func TestSpliceRenderedPreservesHandwritten(t *testing.T) {
+	target := "package x\n\nfunc f() {\n\t// mozi:section Req — plumbing\n\toldPlumbing()\n\t// mozi:end Req\n\n\thandwritten()\n}\n"
+	rendered := "package x\n\nfunc f() {\n\t// mozi:section Req — plumbing\n\tnewPlumbing()\n\t// mozi:end Req\n\n\t// fresh placeholder\n}\n"
+	out := SpliceRendered(target, rendered)
+	if !strings.Contains(out, "\tnewPlumbing()") || strings.Contains(out, "oldPlumbing()") {
+		t.Fatalf("plumbing not updated:\n%s", out)
+	}
+	if !strings.Contains(out, "handwritten()") {
+		t.Fatalf("handwritten code lost:\n%s", out)
+	}
+}
