@@ -16,6 +16,10 @@ type CreateDeckRequest {
     tags []string `json:"tags"`
 }
 
+type GetDeckRequest {
+    id string `json:"id"`
+}
+
 @server(
     jwt: Auth
 )

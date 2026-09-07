@@ -51,11 +51,20 @@ func goldenService() *mozi.ServiceIR {
 					{Name: "tags", Type: "string", Number: 2, Repeated: true},
 				},
 			},
+			{
+				Name: "GetDeckRequest",
+				Fields: []mozi.MessageFieldIR{
+					{Name: "id", Type: "string", Number: 1},
+				},
+			},
 		},
 		HTTP: []mozi.HTTPRouteIR{
 			{Name: "ListDecks", Method: "GET", Path: "/api/content/decks", Response: "DeckSummary", Auth: "jwt"},
 			{Name: "CreateDeck", Method: "POST", Path: "/api/content/decks", Request: "CreateDeckRequest", Response: "DeckSummary", Auth: "jwt"},
 			{Name: "DeckHealth", Method: "GET", Path: "/api/content/health", Response: "DeckSummary", Auth: "public"},
+		},
+		RPC: []mozi.RPCMethodIR{
+			{Name: "GetDeck", Request: "GetDeckRequest", Response: "DeckSummary"},
 		},
 	}
 }
@@ -95,6 +104,10 @@ func TestServiceHandlerGolden(t *testing.T) {
 
 func TestServiceTypesGolden(t *testing.T) {
 	renderGolden(t, "service/types.go.tmpl", "service_types.go.golden")
+}
+
+func TestServiceProtoGolden(t *testing.T) {
+	renderGolden(t, "service/proto.tmpl", "service.proto.golden")
 }
 
 func TestServiceHandlerIncrementalPreservesHandwrittenCode(t *testing.T) {

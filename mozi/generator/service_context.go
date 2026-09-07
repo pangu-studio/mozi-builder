@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/format"
 	"io/fs"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -33,19 +34,22 @@ type ServiceTemplateContext struct {
 
 // ServiceMessageContext is one message with render-ready fields.
 type ServiceMessageContext struct {
-	Name        string
-	Description string
-	Fields      []ServiceFieldContext
+	Name                string
+	Description         string
+	Fields              []ServiceFieldContext
+	ReservedNumbersText string   // "3, 5" for proto reserved declarations
+	ReservedNamesText   []string // pre-quoted names for proto reserved declarations
 }
 
 // ServiceFieldContext is one message field with its resolved Go type.
 type ServiceFieldContext struct {
-	Name     string // snake_case, e.g. review_count
-	JSONName string // camelCase, e.g. reviewCount
-	GoName   string // PascalCase, e.g. ReviewCount
-	GoType   string // string, int, []DeckSummary, ...
-	Repeated bool
-	Number   int32
+	Name      string // snake_case, e.g. review_count
+	JSONName  string // camelCase, e.g. reviewCount
+	GoName    string // PascalCase, e.g. ReviewCount
+	GoType    string // string, int, []DeckSummary, ...
+	ProtoType string // string, int64, double, bool, or a message name
+	Repeated  bool
+	Number    int32
 }
 
 // ServiceRouteContext is one HTTP route with render-ready flags.
@@ -72,18 +76,27 @@ func BuildServiceContext(svc *mozi.ServiceIR) *ServiceTemplateContext {
 	}
 	for _, m := range svc.Messages {
 		mc := ServiceMessageContext{Name: m.Name, Description: m.Description}
+		nums := make([]string, 0, len(m.ReservedNumbers))
+		for _, n := range m.ReservedNumbers {
+			nums = append(nums, strconv.FormatInt(int64(n), 10))
+		}
+		mc.ReservedNumbersText = strings.Join(nums, ", ")
+		for _, n := range m.ReservedNames {
+			mc.ReservedNamesText = append(mc.ReservedNamesText, strconv.Quote(n))
+		}
 		for _, f := range m.Fields {
 			goType := messageFieldGoType(f)
 			if strings.Contains(goType, "time.Time") {
 				ctx.HasTime = true
 			}
 			mc.Fields = append(mc.Fields, ServiceFieldContext{
-				Name:     f.Name,
-				JSONName: snakeToCamel(f.Name),
-				GoName:   snakeToPascal(f.Name),
-				GoType:   goType,
-				Repeated: f.Repeated,
-				Number:   f.Number,
+				Name:      f.Name,
+				JSONName:  snakeToCamel(f.Name),
+				GoName:    snakeToPascal(f.Name),
+				GoType:    goType,
+				ProtoType: messageFieldProtoType(f),
+				Repeated:  f.Repeated,
+				Number:    f.Number,
 			})
 		}
 		ctx.Messages = append(ctx.Messages, mc)
@@ -123,6 +136,37 @@ func messageFieldGoType(f mozi.MessageFieldIR) string {
 		return "[]" + base
 	}
 	return base
+}
+
+// messageFieldProtoType resolves a message field type to the proto3 scalar or
+// message name used in .proto rendering. time maps to int64 (unix millis);
+// json maps to string carrying the JSON encoding. References resolve to the
+// referenced message name.
+func messageFieldProtoType(f mozi.MessageFieldIR) string {
+	if strings.HasPrefix(f.Type, mozi.MessageRefPrefix) {
+		return strings.TrimPrefix(f.Type, mozi.MessageRefPrefix)
+	}
+	if strings.HasPrefix(f.Type, mozi.ModelRefPrefix) {
+		target := strings.TrimPrefix(f.Type, mozi.ModelRefPrefix)
+		if i := strings.LastIndex(target, "/"); i >= 0 {
+			target = target[i+1:]
+		}
+		return target
+	}
+	switch mozi.FieldType(f.Type) {
+	case mozi.FieldTypeInt:
+		return "int64"
+	case mozi.FieldTypeFloat:
+		return "double"
+	case mozi.FieldTypeBool:
+		return "bool"
+	case mozi.FieldTypeTime:
+		return "int64"
+	case mozi.FieldTypeString, mozi.FieldTypeText, mozi.FieldTypeEnum, mozi.FieldTypeJSON:
+		return "string"
+	default:
+		return "string"
+	}
 }
 
 // ExecuteService runs a service template against the given ServiceIR with a

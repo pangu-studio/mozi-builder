@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package content;
+
+option go_package = "./content";
+
+message DeckSummary {
+	string id = 1;
+	string title = 2;
+	int64 due_at = 3;
+	reserved 4;
+	reserved "review_count";
+}
+
+message CreateDeckRequest {
+	string title = 1;
+	repeated string tags = 2;
+}
+
+message GetDeckRequest {
+	string id = 1;
+}
+
+service ContentService {
+	rpc GetDeck(GetDeckRequest) returns (DeckSummary);
+}
