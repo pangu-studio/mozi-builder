@@ -14,3 +14,8 @@ type CreateDeckRequest struct {
 	Title string   `json:"title"`
 	Tags  []string `json:"tags"`
 }
+
+// GetDeckRequest is a message of the ContentService contract.
+type GetDeckRequest struct {
+	Id string `json:"id"`
+}
