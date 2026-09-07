@@ -5,7 +5,7 @@ go 1.26.4
 require (
 	github.com/bufbuild/protocompile v0.14.1
 	github.com/jackc/pgx/v5 v5.8.0
-	github.com/pangu-studio/mozi-builder v0.2.4-0.20260907071002-496fb45a6884
+	github.com/pangu-studio/mozi-builder v0.2.4-0.20260907023907-ef3d084e87e7
 	github.com/zeromicro/go-zero v1.10.3
 	go.etcd.io/etcd/client/v3 v3.5.21
 	golang.org/x/crypto v0.48.0

@@ -1,4 +1,4 @@
-package handler
+package example
 
 import (
 	"net/http"
@@ -12,9 +12,8 @@ func ListDecks(w http.ResponseWriter, r *http.Request) {
 	_ = r
 	// mozi:end ListDecksRequest
 
-	// TODO: implement ListDecks business logic here. This region is
-	// handwritten and preserved across regeneration.
-	httpx.OkJson(w, nil)
+	// Handwritten business logic: return a demo deck list.
+	httpx.OkJson(w, DeckSummary{Id: "demo-deck", Title: "示例牌组"})
 }
 
 // CreateDeck handles POST /api/content/decks.
@@ -28,9 +27,8 @@ func CreateDeck(w http.ResponseWriter, r *http.Request) {
 	_ = req
 	// mozi:end CreateDeckRequest
 
-	// TODO: implement CreateDeck business logic here. This region is
-	// handwritten and preserved across regeneration.
-	httpx.OkJson(w, nil)
+	// Handwritten business logic: echo the created deck.
+	httpx.OkJson(w, DeckSummary{Id: "new-deck", Title: req.Title})
 }
 
 // DeckHealth handles GET /api/content/health.
@@ -39,7 +37,6 @@ func DeckHealth(w http.ResponseWriter, r *http.Request) {
 	_ = r
 	// mozi:end DeckHealthRequest
 
-	// TODO: implement DeckHealth business logic here. This region is
-	// handwritten and preserved across regeneration.
-	httpx.OkJson(w, nil)
+	// Handwritten business logic: health probe.
+	httpx.OkJson(w, DeckSummary{Id: "ok"})
 }
