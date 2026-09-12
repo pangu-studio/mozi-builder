@@ -110,3 +110,10 @@
 - `service/proto.tmpl` 渲染 proto3：字段编号原样取自 IR、删除字段 reserved 透传、RPC service 块；`ProtoType` 映射 int→int64、time→int64（unix 毫秒）等集中在 `ServiceFieldContext`。
 - `platform/internal/gen/rpcexample/`：渲染产物经纯 Go protocompile 解析验证（字段编号、reserved 编号与名称、service 方法），并用 bufconn + JSON codec 完成真实 gRPC 往返（`/content.ContentService/GetDeck`）。
 - 验证：平台 go test -race 全绿。示例用手写 ServiceDesc + JSON codec，未引入 protoc 代码生成；生产 goctl 工具链接入在发布阶段（阶段 6）评估。
+
+### 阶段 4：发布基础（PR-A）
+
+- 设计契约见 [deployment.md](deployment.md)：发布状态机、双适配器红线、幂等与恢复语义、与 PoC fixture 的边界。
+- 平台库 `0003_releases`：`release_operations`（idempotency_key 唯一、活动操作部分唯一索引保证单一配置管理者）+ `release_readbacks`（append-only 回读快照）。
+- `platform/internal/release` 状态机：Pending/Applying/Ready/Failed/Drifted，readback mismatch 重试上限、claim 过期恢复、Failed 重试、Drifted reconcile；合法/非法转移单测覆盖。
+- 验证：`0003_releases` 已应用到专用平台库，双库 verify 通过；平台 go test -race 全绿。etcd/APISIX 适配器与 Controller 在 PR-B。
