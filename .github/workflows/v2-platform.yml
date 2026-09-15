@@ -1,0 +1,37 @@
+name: v2-platform
+on:
+  pull_request:
+    branches: [v2]
+  push:
+    branches: [v2]
+jobs:
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.4"
+      - name: Root module tests
+        run: go test ./...
+      - name: Platform vet and tests
+        working-directory: platform
+        run: |
+          # The platform module consumes the root module via pseudo-version;
+          # in CI the checkout is the source of truth, so replace locally.
+          go mod edit -replace github.com/pangu-studio/mozi-builder=../
+          go mod tidy
+          go vet ./...
+          go test ./...
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Console type check and build
+        working-directory: platform/web
+        run: |
+          npm ci
+          npm run build
