@@ -1,0 +1,36 @@
+# Release controller acceptance stack (phase 4 PR-C). Unlike the phase-0 PoC,
+# the discovery etcd and APISIX Admin API are published on loopback so the
+# host-run controller tests can drive them. Credentials are disposable local
+# acceptance values, never production.
+name: mozi-v2-release-acc
+x-etcd: &etcd
+  image: gcr.io/etcd-development/etcd:v3.5.21
+  command: [etcd, --listen-client-urls=http://0.0.0.0:2379, --advertise-client-urls=http://localhost:2379, --data-dir=/data]
+  healthcheck:
+    test: [CMD, etcdctl, endpoint, health]
+    interval: 3s
+    timeout: 2s
+    retries: 20
+services:
+  registry:
+    <<: *etcd
+    ports: [127.0.0.1:12379:2379]
+    volumes: [registry-data:/data]
+  gateway-store:
+    <<: *etcd
+    volumes: [gateway-data:/data]
+  apisix:
+    image: apache/apisix:3.18.0-debian
+    volumes: [./config.yaml:/usr/local/apisix/conf/config.yaml:ro]
+    ports: [127.0.0.1:19081:9080, 127.0.0.1:19180:9180]
+    depends_on:
+      gateway-store: {condition: service_healthy}
+  echo1:
+    image: traefik/whoami:v1.11.0
+    hostname: echo1
+  echo2:
+    image: traefik/whoami:v1.11.0
+    hostname: echo2
+volumes:
+  registry-data:
+  gateway-data:

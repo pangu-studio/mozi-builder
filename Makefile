@@ -50,7 +50,7 @@ test:
 # v2 is an independent module; these targets do not change v1 dependencies.
 COMPOSE ?= docker compose
 POC_COMPOSE := platform/deploy/poc/compose.yaml
-.PHONY: v2-test v2-migrate v2-migrate-verify v2-poc-build v2-poc-up v2-poc-down v2-poc-smoke v2-web-build
+.PHONY: v2-test v2-migrate v2-migrate-verify v2-poc-build v2-poc-up v2-poc-down v2-poc-smoke v2-web-build v2-acc-up v2-acc-down
 v2-test:
 	cd platform && $(GO) test ./...
 v2-migrate:
@@ -67,5 +67,9 @@ v2-poc-down:
 	$(COMPOSE) -f $(POC_COMPOSE) down
 v2-poc-smoke:
 	python3 platform/deploy/poc/smoke.py
+v2-acc-up:
+	$(COMPOSE) -f platform/deploy/release/compose.yaml up -d
+v2-acc-down:
+	$(COMPOSE) -f platform/deploy/release/compose.yaml down
 v2-web-build:
 	cd platform/web && npm ci && npm run build

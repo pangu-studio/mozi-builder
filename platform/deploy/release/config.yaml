@@ -1,0 +1,27 @@
+# Release controller acceptance stack. Admin listener is published on
+# loopback only; the key is a disposable local acceptance credential.
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+  # Resolve upstream hostnames (compose service names) via Docker embedded DNS.
+  dns_resolver:
+    - "127.0.0.11"
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    admin_listen:
+      ip: 0.0.0.0
+      port: 9180
+    allow_admin:
+      - 0.0.0.0/0
+    admin_key:
+      - name: acceptance
+        key: mozi-v2-release-acc-only
+        role: admin
+  etcd:
+    host:
+      - http://gateway-store:2379
+    prefix: /apisix
+    timeout: 10
