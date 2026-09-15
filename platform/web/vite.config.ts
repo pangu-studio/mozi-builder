@@ -21,7 +21,6 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        lab: resolve(import.meta.dirname, "lab.html"),
         console: resolve(import.meta.dirname, "index.html"),
       },
     },

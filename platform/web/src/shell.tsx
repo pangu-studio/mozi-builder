@@ -6,7 +6,7 @@ import { APIError, request, type Project, type User } from "./api";
 import Login from "./Login";
 import Environments from "./Environments";
 import CreateResource from "./CreateResource";
-import DesignerPreview from "./DesignerPreview";
+import ModelsWorkspace, { type DesignContext } from "./ModelsWorkspace";
 import "./style.css";
 const sessionKey = "mozi_v2_session";
 function readToken() {
@@ -153,6 +153,33 @@ function Console({
     return () => controller.abort();
   }, [call, version]);
   const project = projects.find((p) => p.id === selected);
+  // The designer is an in-bundle component: the console passes a
+  // project-scoped request function restricted to design model paths,
+  // never the raw token. Switching projects remounts the workspace.
+  const designRequest = useCallback(
+    <T,>(path: string, options: RequestInit = {}): Promise<T> => {
+      if (
+        !project ||
+        !/^\/models(?:\/[a-z][a-z0-9_]{0,62}\/[A-Z][A-Za-z0-9]{0,62}(?:\/history)?)?$/.test(
+          path,
+        )
+      )
+        return Promise.reject(new Error("项目上下文已失效或请求路径不合法。"));
+      return call<T>(
+        `/projects/${encodeURIComponent(project.id)}/design${path}`,
+        options,
+      );
+    },
+    [call, project],
+  );
+  const designContext: DesignContext | null = project
+    ? {
+        protocolVersion: 2,
+        onDirty: setDesignDirty,
+        project: { id: project.id, name: project.name, role: project.role },
+        request: designRequest,
+      }
+    : null;
   const signOut = async () => {
     if (!mayLeave()) return;
     setLeaving(true);
@@ -268,13 +295,14 @@ function Console({
                   }
                 </span>
               </div>
-              {page === "designer" ? (
-                <DesignerPreview
-                  key={project.id}
-                  project={project}
-                  call={call}
-                  onDirty={setDesignDirty}
-                />
+              {page === "designer" && designContext ? (
+                <section className="designer-section">
+                  <h1>模型设计</h1>
+                  <ModelsWorkspace
+                    key={project.id}
+                    context={designContext}
+                  />
+                </section>
               ) : (
                 <Environments key={project.id} project={project} call={call} />
               )}

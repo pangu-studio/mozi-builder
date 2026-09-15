@@ -31,7 +31,6 @@
     "src",
     "vite.config.ts",
     "playwright.config.ts",
-    "tests",
-    "vite.designer.config.ts"
+    "tests"
   ]
 }

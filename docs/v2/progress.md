@@ -145,6 +145,12 @@
 
 已知边界：验收栈为独立 Compose 项目 `mozi-v2-release-acc`（回环端口、一次性本地凭证），不用于生产；APISIX 上游注册容器 IP；漂移目前只在主动 DriftCheck 时检测，周期巡检与操作审计检索在阶段 7；发布 API（控制台触发操作）尚未暴露，当前由测试直接驱动 Controller。
 
+### 架构调整：开发平台 web 改为单 SPA（2026-09）
+
+- 用户确认开发平台 web **不使用微应用**：console 与设计器等各工作区同包路由，`platform/web` 移除 micro-app 依赖、独立设计器构建与 `/lab.html` 实验入口；architecture.md 边界已同步修订。
+- 设计器（ModelsWorkspace）作为页面组件直接渲染，控制台继续只传项目作用域、路径受限的请求函数，不传原始 token；切换项目重挂载工作区。
+- 阶段 0 的 micro-app 集成验证与生命周期回归保留为历史证据，不再代表控制台架构。
+- 验证：TypeScript/Vite 单 bundle 构建、九项 Chrome 浏览器用例（登录、项目切换、冲突保留、历史弹窗、设计器页内挂载与登出卸载、移动布局）全部通过。
 ### 阶段 5：JobIR 与设计库任务定义（PR-A/B）
 
 - 设计契约见 [jobs.md](jobs.md)：execution_id 每次触发独立、同次重试共享（attempt 递增）、超时≠终止、长任务心跳；Dkron 只调度，业务重试全在平台；禁用任务不允许 run 触发。
@@ -152,7 +158,7 @@
 - 设计库 `0004_jobs` 新增 design_jobs / design_job_history；`design/jobs` 集合复用 designCollections 鉴权与版本协议，接入成本仅注册一个集合。
 - 验证：任务文档的同名隔离、跨项目六类接口 404、viewer 只读、428/409、并发恰一次成功、非法 executor 400、历史失败回滚与删除保留；`0004_jobs` 已应用，双库 verify 通过；平台 go test -race 全绿。执行协议与 Dkron 适配在 PR-C。
 
-### 阶段 5：业务任务协议与 Dkron 适配（PR-C）
+### 阶段 6：业务任务协议与 Dkron 适配（PR-C）
 
 - 平台库 `0004_job_executions`：execution_id 全局唯一、running 部分索引、attempt ≥ 1。
 - `platform/internal/jobs`：Store（Trigger 独立 ID、Retry 共享 ID 递增 attempt、Complete 幂等拒绝重复完成、Heartbeat、SweepLost 失联清扫、List）；Dispatcher（协议头 X-Mozi-Execution-Id/Attempt/Job/Trigger，超时标记失败不终止业务）；DkronClient（retries 恒为 0，禁用 JobIR 同步为禁用 Dkron 任务，删除容忍 404）。
