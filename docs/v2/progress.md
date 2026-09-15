@@ -111,18 +111,9 @@
 - `platform/internal/gen/rpcexample/`：渲染产物经纯 Go protocompile 解析验证（字段编号、reserved 编号与名称、service 方法），并用 bufconn + JSON codec 完成真实 gRPC 往返（`/content.ContentService/GetDeck`）。
 - 验证：平台 go test -race 全绿。示例用手写 ServiceDesc + JSON codec，未引入 protoc 代码生成；生产 goctl 工具链接入在发布阶段（阶段 6）评估。
 
-## 阶段 3 收口（2026-09-07）
+### 阶段 4：发布基础（PR-A）
 
-退出条件全部达成：
-
-| 退出条件 | 证据 |
-|---|---|
-| 增量更新保留手写代码 | `generator.SpliceRendered` 恒等测试；示例服务标记外手写逻辑再生成保留 |
-| HTTP 示例可运行 | `platform/internal/gen/example` 的 httptest 真实请求与畸形 JSON 拒绝 |
-| RPC 示例可运行 | protocompile 契约解析（编号与 reserved 断言）+ bufconn 真实 gRPC 往返 |
-
-交付链：ServiceIR 类型/校验/编号（PR #6）→ 设计库服务表与平台 API（#7）→ HTTP 模板（#8）→ ChangePlan 抽取与平台端点（#9/#10）→ types 模板与 gofmt 输出（#11）→ marker 拼接幂等（#12）→ HTTP 示例（#13）→ proto 模板（#14）→ RPC 示例（#15）。
-
-已知边界：示例未接入 protoc/goctl 代码生成（阶段 6 评估）；ServiceIR 的 `model:` 投影目前只解析为类型名，字段子集投影在模块管理完善后实现；ChangePlan 仅覆盖模型集合，服务集合的 change-plan 与控制台界面后续补。
-
-合并注意：platform go.mod 伪版本在各 PR 间互相冲突，合并后必须确认指向 v2 tip；本次遗留由 PR #16 修复。
+- 设计契约见 [deployment.md](deployment.md)：发布状态机、双适配器红线、幂等与恢复语义、与 PoC fixture 的边界。
+- 平台库 `0003_releases`：`release_operations`（idempotency_key 唯一、活动操作部分唯一索引保证单一配置管理者）+ `release_readbacks`（append-only 回读快照）。
+- `platform/internal/release` 状态机：Pending/Applying/Ready/Failed/Drifted，readback mismatch 重试上限、claim 过期恢复、Failed 重试、Drifted reconcile；合法/非法转移单测覆盖。
+- 验证：`0003_releases` 已应用到专用平台库，双库 verify 通过；平台 go test -race 全绿。etcd/APISIX 适配器与 Controller 在 PR-B。
