@@ -55,6 +55,8 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 模型另有 `GET .../design/models/:module/:name/change-plan`：当前文档与上一历史快照的 differ 对比经根模块 `mozi/changeplan` 装配为 AI Coding 契约（意图、任务、验证项、prompt）。v2 没有代码清单（manifest），状态为 pending（有差异）或 no_diff（无差异）；services 集合暂无 change-plan。
 
+任务执行接口（阶段 5）：`POST /api/v2/dkron/fire`（调度回调，共享密钥经 `X-Mozi-Fire-Key` 头或 `fire_key` 查询参数；禁用任务返回 409）、`POST /api/v2/jobs/heartbeat`（执行器心跳，仅头认证，失联 attempt 返回 409）、`POST /api/v2/projects/:id/jobs/:module/:job/fire`（成员手动触发，viewer 403，禁用任务也可 ad-hoc 执行）、`GET .../executions`（成员读最近 100 条）。触发返回 202 与 execution_id，派发异步进行。Dkron 4.1.3 不投递自定义 executor header（实测），调度回调密钥走查询参数。
+
 任务定义（JobIR，阶段 5）接口前缀 `/api/v2/projects/:project/design/jobs`，契约与 models/services 逐项对齐（500 上限、409/428/404、viewer 只读、删除保留历史）。文档经根模块 `mozi/job` 校验：cron 五段或 `@every`、executor POST/PUT 与路径、重试/超时/心跳规则；协议与 Dkron 边界见 [jobs.md](jobs.md)。jobs 集合暂无 change-plan。
 
 ## 验证

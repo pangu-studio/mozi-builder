@@ -163,3 +163,10 @@
 - 平台库 `0004_job_executions`：execution_id 全局唯一、running 部分索引、attempt ≥ 1。
 - `platform/internal/jobs`：Store（Trigger 独立 ID、Retry 共享 ID 递增 attempt、Complete 幂等拒绝重复完成、Heartbeat、SweepLost 失联清扫、List）；Dispatcher（协议头 X-Mozi-Execution-Id/Attempt/Job/Trigger，超时标记失败不终止业务）；DkronClient（retries 恒为 0，禁用 JobIR 同步为禁用 Dkron 任务，删除容忍 404）。
 - 验证：真实平台库随机 schema——两次触发独立 ID、重复完成拒绝、运行中禁止重试、预算耗尽拒绝、心跳失联转 lost 后可重试、列表倒序；httptest 验证 Dkron 负载与调度协议头；慢执行器超时落 failed。平台 go test -race 全绿。Compose 四场景验收在 PR-D。
+
+### 阶段 5：任务端点与 Dkron 验收（PR-D）
+
+- 控制面新增任务端点：Dkron 回调 fire（共享密钥；禁用任务 409）、手动 fire（成员，viewer 403，禁用任务可 ad-hoc）、心跳（204/409）、执行列表。触发 202 异步派发。
+- 实测修正：Dkron 4.1.3 的 POST /v1/jobs 只建不改（SyncJob 改为删后建）、任务名拒绝斜杠/点号/大写（`模块-小写名`）、**不投递自定义 executor header**（回调密钥改走 fire_key 查询参数，仅限内网；header 传输在网关阶段重议）。
+- `TestJobAcceptance` 四场景对真实 Dkron 全过：①@every 2s 定时触发落 scheduled execution 且成功；②手动触发 202 → succeeded；③超时 attempt 1 失败、Retry 共享 execution_id 于 attempt 2 成功，执行器收到 attempt 头；④心跳 204 两次、停报后 SweepLost 转 lost、lost 后心跳 409。容器经 lima 网关 192.168.5.2 访问宿主机 API。
+- 验证：平台 go test -race 全绿。自动重试调度（按 backoff 自动 Retry）与 Dkron 同步生命周期（JobIR 变更自动同步）在后续控制器工作中完善。

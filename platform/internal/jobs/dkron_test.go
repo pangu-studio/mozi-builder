@@ -16,6 +16,10 @@ func TestDkronSyncPayload(t *testing.T) {
 	var payload dkronJob
 	var path string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "DELETE" {
+			w.WriteHeader(404)
+			return
+		}
 		path = r.Method + " " + r.URL.Path
 		_ = json.NewDecoder(r.Body).Decode(&payload)
 		w.WriteHeader(200)
@@ -26,10 +30,10 @@ func TestDkronSyncPayload(t *testing.T) {
 		Module: "content", Name: "DeckDigestJob", Schedule: "0 3 * * *",
 		Executor: mozi.JobExecutorIR{Kind: "http", Method: "POST", Path: "/jobs/x"},
 	}
-	if err := c.SyncJob(context.Background(), job, "http://platform/api/v2/dkron/fire"); err != nil {
+	if err := c.SyncJob(context.Background(), job, "http://platform/api/v2/dkron/fire", "secret"); err != nil {
 		t.Fatal(err)
 	}
-	if path != "PUT /v1/jobs" {
+	if path != "POST /v1/jobs" {
 		t.Fatalf("call: %s", path)
 	}
 	if payload.Retries != 0 {
@@ -38,10 +42,13 @@ func TestDkronSyncPayload(t *testing.T) {
 	if payload.Disabled || payload.Schedule != "0 3 * * *" || payload.ExecutorConfig["method"] != "POST" {
 		t.Fatalf("payload: %+v", payload)
 	}
+	if !strings.Contains(payload.ExecutorConfig["url"], "fire_key=secret") {
+		t.Fatalf("fire key missing from url: %+v", payload.ExecutorConfig)
+	}
 	// Disabled JobIR syncs as a disabled Dkron job (never run-triggered).
 	off := false
 	job.Enabled = &off
-	if err := c.SyncJob(context.Background(), job, "http://platform/api/v2/dkron/fire"); err != nil {
+	if err := c.SyncJob(context.Background(), job, "http://platform/api/v2/dkron/fire", "secret"); err != nil {
 		t.Fatal(err)
 	}
 	if !payload.Disabled {
