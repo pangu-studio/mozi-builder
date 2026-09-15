@@ -130,3 +130,17 @@
 - 专用验收栈 `platform/deploy/release/`（项目 `mozi-v2-release-acc`）：发现 etcd 与 APISIX Admin 发布在回环，whoami 双实例作上游；凭证为一次性本地验收值。`make v2-acc-up/down`（本机需 `COMPOSE=docker-compose`）。
 - `TestReleaseAcceptance`（`MOZI_RELEASE_ACC=1`）三场景全过：①扩缩容 1→2→1，网关观测到两个实例后收敛回单实例；②停止发现 etcd 后网关凭缓存配置继续服务、DriftCheck 不误报漂移，恢复后回读 Ready；③Controller 认领后"崩溃"（租约老化），新实例 ExpireStale 回收并执行到 Ready，网关切换到目标实例。
 - 环境注意：APISIX 上游用容器 IP（compose 服务名不走嵌入 DNS 解析链）；whoami 身份依赖 compose `hostname`。验收栈目前保持运行，复查用例可重跑。
+
+## 阶段 4 收口（2026-09-15）
+
+退出条件全部达成，对真实平台代码与专用验收栈（非 PoC fixture）：
+
+| 退出条件 | 证据 |
+|---|---|
+| 扩缩容 | `TestReleaseAcceptance` 场景 1：上游 1→2→1，网关观测双实例后收敛 |
+| 断线恢复 | 场景 2：停发现 etcd，网关凭缓存配置继续服务、无误报漂移、恢复后 Ready |
+| Controller 重启可恢复 | 场景 3：租约过期回收 + 新实例执行到 Ready，网关切换目标实例 |
+
+交付链：设计契约与状态机/迁移（PR #18）→ 适配器接口与 Controller（#19）→ 生产适配器与 Compose 验收（#20）。
+
+已知边界：验收栈为独立 Compose 项目 `mozi-v2-release-acc`（回环端口、一次性本地凭证），不用于生产；APISIX 上游注册容器 IP；漂移目前只在主动 DriftCheck 时检测，周期巡检与操作审计检索在阶段 7；发布 API（控制台触发操作）尚未暴露，当前由测试直接驱动 Controller。
