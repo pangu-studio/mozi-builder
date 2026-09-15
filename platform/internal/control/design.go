@@ -66,12 +66,29 @@ func designCollections(store design.Store) map[string]designCollection {
 				return v.Module, v.Name, nil
 			},
 		},
+		"jobs": {
+			list: func(ctx context.Context, p string) (any, error) { return store.ListJobs(ctx, p) },
+			get:  func(ctx context.Context, p, m, n string) (any, error) { return store.GetJob(ctx, p, m, n) },
+			history: func(ctx context.Context, p, m, n string) (any, error) {
+				return store.JobHistory(ctx, p, m, n)
+			},
+			save: func(ctx context.Context, s design.Scope, m, n, e string, b json.RawMessage, a string) (any, error) {
+				return store.SaveJob(ctx, s, m, n, e, b, a)
+			},
+			ident: func(body json.RawMessage) (string, string, error) {
+				v, err := design.ValidateJob(body)
+				if err != nil {
+					return "", "", err
+				}
+				return v.Module, v.Name, nil
+			},
+		},
 	}
 }
 
 func (a API) designRoutes() []rest.Route {
 	var routes []rest.Route
-	for _, kind := range []string{"models", "services"} {
+	for _, kind := range []string{"models", "services", "jobs"} {
 		root := "/api/v2/projects/:project/design/" + kind
 		routes = append(routes, rest.Route{Method: "GET", Path: root, Handler: a.handle}, rest.Route{Method: "POST", Path: root, Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "PUT", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "DELETE", Path: root + "/:module/:name", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/history", Handler: a.handle}, rest.Route{Method: "GET", Path: root + "/:module/:name/change-plan", Handler: a.handle})
 	}
