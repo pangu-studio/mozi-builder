@@ -194,3 +194,9 @@
 - 端点：POST/GET releases、GET provenance；viewer 可读不可建，创建写审计。
 - 验证：真实双库——快照冻结（创建后改模型，首个 Release 快照不变，第二个捕获新版本）、列表倒序、provenance 空历史、viewer 403、跨项目 404、缺 code_ref 400；`0005_releases` 已应用，双库 verify 通过；平台 go test -race 全绿。晋级/回退编排在 PR-B。
 - CI：v2-platform workflow 修复 web job（builder-react 依赖需 npm ci）。
+
+### 阶段 6：晋级与回退编排（PR-B）
+
+- `release.Promoter`：Promote/Rollback 编排——protected 强制 confirm（409）、缺失目标 404/409、成功后旧 ready 转 superseded；任务同步按快照 token 从 design_job_history 加载 JobIR 并 SyncJob 到 Dkron。
+- 端点：POST promote / rollback；viewer 403。
+- 验证：真实双库 + httptest Dkron——promote 后 Dkron 收到 content-digestjob、protected 无 confirm 409/有 confirm 200、r2 晋级后 r1 superseded、rollback 回到 r1 且重同步、单一 ready 环境 rollback 409、viewer 403、缺失 Release 404。平台 go test -race 全绿。Compose 晋级/部分失败/回退验收在 PR-C。
