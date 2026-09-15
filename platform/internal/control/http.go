@@ -72,7 +72,7 @@ func (a API) Routes() []rest.Route {
 		{Method: "POST", Path: "/api/v2/projects/:project/environments", Handler: a.handle},
 		{Method: "GET", Path: "/api/v2/projects/:project/members", Handler: a.handle},
 		{Method: "POST", Path: "/api/v2/projects/:project/members", Handler: a.handle},
-	}, append(a.designRoutes(), a.jobRoutes()...)...)
+	}, append(a.designRoutes(), append(a.jobRoutes(), a.releaseRoutes()...)...)...)
 }
 func audit(r *http.Request, tx *sql.Tx, user, project, action, resource, result string) error {
 	_, err := tx.ExecContext(r.Context(), `INSERT INTO audit_events(actor_id,project_id,request_id,action,resource_type,resource_id,result) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7)`, user, project, ID(), action, action, resource, result)
@@ -145,6 +145,10 @@ func (a API) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.Contains(path, "/jobs/") {
 		a.handleProjectJob(w, r, u, strings.Split(path, "/"))
+		return
+	}
+	if strings.Contains(path, "/releases") {
+		a.handleReleases(w, r, u, strings.Split(path, "/"))
 		return
 	}
 	if path == "me" {
