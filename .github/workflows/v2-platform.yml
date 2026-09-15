@@ -30,6 +30,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Install builder-react sources
+        working-directory: builder-react
+        run: npm ci
       - name: Console type check and build
         working-directory: platform/web
         run: |

@@ -186,3 +186,11 @@
 实测修正记录（对真实 Dkron 4.1.3）：POST /v1/jobs 只建不改（SyncJob 删后建）；任务名拒绝斜杠/点号/大写（模块-小写名）；不投递自定义 executor header（回调密钥走 fire_key 查询参数）。
 
 已知边界：按 backoff 的自动重试调度与 JobIR 变更的 Dkron 生命周期同步未自动化（当前由端点与测试驱动）；fire_key 经 URL 传输仅限内网，网关阶段重议；任务执行不进入业务请求必经链路的网关接入在阶段 6/7 完成。
+
+### 阶段 6：Release 数据模型与追溯 API（PR-A）
+
+- 平台库 `0005_releases`：releases（design_versions JSONB 快照、code_ref）+ environment_releases（晋级/回退追加式历史，superseded 语义预留）。
+- `release.Catalog`：Snapshot 读取三集合当前版本 token；Create 固化快照；List 倒序；Provenance 三方关联。
+- 端点：POST/GET releases、GET provenance；viewer 可读不可建，创建写审计。
+- 验证：真实双库——快照冻结（创建后改模型，首个 Release 快照不变，第二个捕获新版本）、列表倒序、provenance 空历史、viewer 403、跨项目 404、缺 code_ref 400；`0005_releases` 已应用，双库 verify 通过；平台 go test -race 全绿。晋级/回退编排在 PR-B。
+- CI：v2-platform workflow 修复 web job（builder-react 依赖需 npm ci）。
