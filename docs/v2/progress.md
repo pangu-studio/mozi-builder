@@ -123,3 +123,10 @@
 - `platform/internal/release` 新增双适配器接口（编译期分离：EtcdAdapter 只管 RPC 注册格式，ApisixAdapter 只管 HTTP 路由格式）与 Desired/Observed 契约；所有写为幂等 upsert，注册中心不可达只重试不删节点。
 - Controller：`ClaimNext`（FOR UPDATE SKIP LOCKED 原子认领）、`RunOnce`（执行→回读→转移）、`ExpireStale`（租约过期回 Pending）、`DriftCheck`（只检测不回改）、`CreateOperation`（幂等键去重）。
 - 验证：真实平台库随机 schema 集成测试覆盖 Ready 路径与回读落库、幂等键重复提交不重复执行、mismatch 重试到上限 Failed（含租约过期重认领）、执行失败 Fatal、disable 路由、外部改动检测为 Drifted；平台 go test -race 全绿。真实 Compose 三场景验收在 PR-C。
+
+### 阶段 4：真实适配器与 Compose 验收（PR-C）
+
+- 生产适配器：`EtcdDiscovery`（key 为 `<service>/<node>` 的幂等 upsert + 陈旧键清理）与 `ApisixAdmin`（先写上游再写路由；禁用走空 plugins 不动上游）；Admin API 线格式有 httptest 单测。
+- 专用验收栈 `platform/deploy/release/`（项目 `mozi-v2-release-acc`）：发现 etcd 与 APISIX Admin 发布在回环，whoami 双实例作上游；凭证为一次性本地验收值。`make v2-acc-up/down`（本机需 `COMPOSE=docker-compose`）。
+- `TestReleaseAcceptance`（`MOZI_RELEASE_ACC=1`）三场景全过：①扩缩容 1→2→1，网关观测到两个实例后收敛回单实例；②停止发现 etcd 后网关凭缓存配置继续服务、DriftCheck 不误报漂移，恢复后回读 Ready；③Controller 认领后"崩溃"（租约老化），新实例 ExpireStale 回收并执行到 Ready，网关切换到目标实例。
+- 环境注意：APISIX 上游用容器 IP（compose 服务名不走嵌入 DNS 解析链）；whoami 身份依赖 compose `hostname`。验收栈目前保持运行，复查用例可重跑。
