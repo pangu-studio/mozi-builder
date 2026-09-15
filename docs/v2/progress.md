@@ -117,3 +117,9 @@
 - 平台库 `0003_releases`：`release_operations`（idempotency_key 唯一、活动操作部分唯一索引保证单一配置管理者）+ `release_readbacks`（append-only 回读快照）。
 - `platform/internal/release` 状态机：Pending/Applying/Ready/Failed/Drifted，readback mismatch 重试上限、claim 过期恢复、Failed 重试、Drifted reconcile；合法/非法转移单测覆盖。
 - 验证：`0003_releases` 已应用到专用平台库，双库 verify 通过；平台 go test -race 全绿。etcd/APISIX 适配器与 Controller 在 PR-B。
+
+### 阶段 4：适配器与 Controller（PR-B）
+
+- `platform/internal/release` 新增双适配器接口（编译期分离：EtcdAdapter 只管 RPC 注册格式，ApisixAdapter 只管 HTTP 路由格式）与 Desired/Observed 契约；所有写为幂等 upsert，注册中心不可达只重试不删节点。
+- Controller：`ClaimNext`（FOR UPDATE SKIP LOCKED 原子认领）、`RunOnce`（执行→回读→转移）、`ExpireStale`（租约过期回 Pending）、`DriftCheck`（只检测不回改）、`CreateOperation`（幂等键去重）。
+- 验证：真实平台库随机 schema 集成测试覆盖 Ready 路径与回读落库、幂等键重复提交不重复执行、mismatch 重试到上限 Failed（含租约过期重认领）、执行失败 Fatal、disable 路由、外部改动检测为 Drifted；平台 go test -race 全绿。真实 Compose 三场景验收在 PR-C。
