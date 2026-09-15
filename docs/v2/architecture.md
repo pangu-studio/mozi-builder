@@ -6,7 +6,7 @@
 
 - 保留根 Go module、Gin 嵌入接口和 builder-react 发布入口。v2 平台在 platform/ 独立 Go module 中开发，避免框架依赖升级影响 v1。
 - 平台先采用 go-zero 模块化 API + 独立 Controller。业务模型归属服务，模块不等于部署单元；禁止跨服务数据库外键、JOIN 与级联删除。
-- console-shell、designer-app、operations-app 通过 micro-app 集成。先验证现有设计器，不重写模型 UI。
+- 开发平台 web 为**单 SPA**：console 与各工作区（模型设计、运行管理等）同包路由，不使用 micro-app。阶段 0 的 micro-app 验证仅作历史证据；2026-09 用户确认放弃微应用方案。先验证现有设计器组件复用，不重写模型 UI。
 - APISIX 负责外部入口；go-zero RPC 使用 etcd 注册发现；HTTP 注册通过适配器转成 APISIX 上游。两种注册格式不可混用。
 - Dkron 独立持久化调度状态；业务任务自行处理逻辑执行 ID、幂等与长任务结果。调度成功不等于业务完成。
 - 平台不进入业务请求与已发布任务的必经链路。

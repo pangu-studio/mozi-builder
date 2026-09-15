@@ -84,10 +84,9 @@ cd platform && go test -race ./...
 
 - go-zero 1.10.3、etcd client/server 3.5.21、gRPC 1.80.0：`go.mod` / `go.sum`。
 - APISIX 3.18.0-debian、Dkron 4.1.3：`deploy/poc/compose.yaml`。
-- micro-app 1.0.0-rc.32、React 19.2.7、Ant Design 6.4.5、React Router 7.18.3、Vite 7.3.6：`web/package.json` / `package-lock.json`。
-- micro-app 当前使用预发布版本；必须保留生命周期回归用例，升级时重跑。其他组件也不得使用浮动 latest。
+- React 19.2.7、Ant Design 6.4.5、React Router 7.18.3、Vite 7.3.6：`web/package.json` / `package-lock.json`。组件不得使用浮动 latest。
 
-官方依据：[go-zero discovery](https://go-zero.dev/guides/microservice/service-discovery/)、[APISIX Admin API](https://apisix.apache.org/docs/apisix/admin-api/)、[Dkron](https://dkron.io/docs/basics/getting-started/)、[micro-app Vite 接入](https://github.com/jd-opensource/micro-app/blob/master/docs/zh-cn/framework/vite.md)。
+官方依据：[go-zero discovery](https://go-zero.dev/guides/microservice/service-discovery/)、[APISIX Admin API](https://apisix.apache.org/docs/apisix/admin-api/)、[Dkron](https://dkron.io/docs/basics/getting-started/)。
 
 ## 控制台
 
@@ -95,7 +94,7 @@ cd platform && go test -race ./...
 
 需要先用 `platform-user` 创建账号，流程见 [平台 API](../docs/v2/platform-api.md)。前端没有默认密码。会话保存在当前标签页的 sessionStorage；接口 401 清理会话并返回登录页，网络故障则显示重试。线上静态部署需将 `/api/v2` 配置为同源 HTTPS 反向代理。
 
-切换项目销毁旧环境视图并取消请求，角色只控制按钮展示，最终由后端授权。当前环境页在 shell 中，设计器通过 micro-app 加载真实项目模型，支持字段编辑、完整扩展 JSON、版本冲突和历史快照；详见 [项目模型](../docs/v2/project-models.md)。原阶段 0 实验入口保留在 `/lab.html#designer`，不连接业务数据。
+切换项目销毁旧环境视图并取消请求，角色只控制按钮展示，最终由后端授权。当前环境页与设计器同在单 SPA 内（2026-09 起不使用 micro-app）：设计器直接以项目作用域请求函数加载真实项目模型，支持字段编辑、完整扩展 JSON、版本冲突和历史快照；详见 [项目模型](../docs/v2/project-models.md)。阶段 0 的 `/lab.html` 微应用实验入口已移除。
 
 基座和设计器采用独立构建图，设计器资产输出到 `dist/designer/assets/`，避免 iframe 加载时与基座共用分块。
 

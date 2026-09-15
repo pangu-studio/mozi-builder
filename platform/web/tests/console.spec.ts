@@ -213,7 +213,7 @@ test("project load failure offers retry and no stale content", async ({
   await page.getByRole("button", { name: /^重\s*试$/ }).click();
   await expect(page.getByText("Alpha 开发", { exact: true })).toBeVisible();
 });
-test("designer mounts after login and logout destroys the child", async ({
+test("designer mounts in-page after login and unmounts on logout", async ({
   page,
 }) => {
   const errors: string[] = [];
@@ -221,10 +221,9 @@ test("designer mounts after login and logout destroys the child", async ({
   await mock(page);
   await login(page);
   await page.getByRole("link", { name: "模型设计", exact: true }).click();
-  await expect(page.getByText("设计器已挂载", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("designer-app")).toBeVisible();
+  await expect(page.getByTestId("real-designer")).toBeVisible();
   await page.getByRole("button", { name: "退出登录" }).click();
-  await expect(page.getByTestId("designer-app")).toHaveCount(0);
+  await expect(page.getByTestId("real-designer")).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 

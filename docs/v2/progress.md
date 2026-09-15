@@ -144,3 +144,10 @@
 交付链：设计契约与状态机/迁移（PR #18）→ 适配器接口与 Controller（#19）→ 生产适配器与 Compose 验收（#20）。
 
 已知边界：验收栈为独立 Compose 项目 `mozi-v2-release-acc`（回环端口、一次性本地凭证），不用于生产；APISIX 上游注册容器 IP；漂移目前只在主动 DriftCheck 时检测，周期巡检与操作审计检索在阶段 7；发布 API（控制台触发操作）尚未暴露，当前由测试直接驱动 Controller。
+
+### 架构调整：开发平台 web 改为单 SPA（2026-09）
+
+- 用户确认开发平台 web **不使用微应用**：console 与设计器等各工作区同包路由，`platform/web` 移除 micro-app 依赖、独立设计器构建与 `/lab.html` 实验入口；architecture.md 边界已同步修订。
+- 设计器（ModelsWorkspace）作为页面组件直接渲染，控制台继续只传项目作用域、路径受限的请求函数，不传原始 token；切换项目重挂载工作区。
+- 阶段 0 的 micro-app 集成验证与生命周期回归保留为历史证据，不再代表控制台架构。
+- 验证：TypeScript/Vite 单 bundle 构建、九项 Chrome 浏览器用例（登录、项目切换、冲突保留、历史弹窗、设计器页内挂载与登出卸载、移动布局）全部通过。

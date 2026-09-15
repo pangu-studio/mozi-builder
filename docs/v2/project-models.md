@@ -29,9 +29,9 @@ v2 模型保存在 `mozi_v2_design.design_models`，唯一键为 `(project_id, m
 
 ## 控制台
 
-选择项目后进入“模型设计”。micro-app 子应用复用现有 FieldTable / FieldEditor；模型基本属性和字段可视化编辑，semantics、admin、ui_intent、api_intent、relations 等扩展定义采用完整 JSON 编辑，保存后可查看历史快照。
+选择项目后进入“模型设计”。设计器为控制台单 SPA 内的页面组件（2026-09 起不再使用 micro-app），复用现有 FieldTable / FieldEditor；模型基本属性和字段可视化编辑，semantics、admin、ui_intent、api_intent、relations 等扩展定义采用完整 JSON 编辑，保存后可查看历史快照。
 
-基座只提供绑定当前项目的请求函数，不向子应用传原始 token。函数限制设计接口路径，子应用卸载时清空通信数据并中止请求。切换项目销毁旧实例与编辑状态；编辑未保存时提示确认。冲突保留本地草稿，用户主动重新读取最新版本后再编辑。v1 组件库、Gin 接口和 `/lab.html` 演示入口保持兼容。
+控制台只向设计器传递绑定当前项目的请求函数，不传原始 token；函数限制设计接口路径。切换项目重挂载工作区并丢弃编辑状态；编辑未保存时提示确认。冲突保留本地草稿，用户主动重新读取最新版本后再编辑。v1 组件库与 Gin 接口保持兼容；micro-app 演示入口 `/lab.html` 已随单 SPA 调整移除。
 
 ## 运行和验证
 
