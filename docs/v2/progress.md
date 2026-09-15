@@ -170,3 +170,19 @@
 - 实测修正：Dkron 4.1.3 的 POST /v1/jobs 只建不改（SyncJob 改为删后建）、任务名拒绝斜杠/点号/大写（`模块-小写名`）、**不投递自定义 executor header**（回调密钥改走 fire_key 查询参数，仅限内网；header 传输在网关阶段重议）。
 - `TestJobAcceptance` 四场景对真实 Dkron 全过：①@every 2s 定时触发落 scheduled execution 且成功；②手动触发 202 → succeeded；③超时 attempt 1 失败、Retry 共享 execution_id 于 attempt 2 成功，执行器收到 attempt 头；④心跳 204 两次、停报后 SweepLost 转 lost、lost 后心跳 409。容器经 lima 网关 192.168.5.2 访问宿主机 API。
 - 验证：平台 go test -race 全绿。自动重试调度（按 backoff 自动 Retry）与 Dkron 同步生命周期（JobIR 变更自动同步）在后续控制器工作中完善。
+
+## 阶段 5 收口（2026-09-15）
+
+退出条件全部达成，对真实 Dkron 4.1.3 与真实双库：
+
+| 退出条件 | 证据 |
+|---|---|
+| 可追踪触发/重试 | 定时/手动/retry 三种 trigger 落库可查；execution_id 每次触发独立、同次重试共享（attempt 递增），执行器收到正确协议头 |
+| 业务幂等 | Complete 按 (execution_id, attempt) 幂等拒绝重复完成；CreateOperation 幂等键去重；超时标记失败不终止业务 |
+| 长任务状态正确 | 心跳 204 → 停报 → SweepLost 转 lost → lost 后心跳 409；lost 可重试 |
+
+交付链：JobIR 设计与校验（PR #22）→ 设计库任务定义 API（#23）→ 执行协议与 Dkron 适配（#25）→ 任务端点与四场景验收（#26）。
+
+实测修正记录（对真实 Dkron 4.1.3）：POST /v1/jobs 只建不改（SyncJob 删后建）；任务名拒绝斜杠/点号/大写（模块-小写名）；不投递自定义 executor header（回调密钥走 fire_key 查询参数）。
+
+已知边界：按 backoff 的自动重试调度与 JobIR 变更的 Dkron 生命周期同步未自动化（当前由端点与测试驱动）；fire_key 经 URL 传输仅限内网，网关阶段重议；任务执行不进入业务请求必经链路的网关接入在阶段 6/7 完成。

@@ -30,7 +30,7 @@
 | 2 ✅ | 设计器平台化、多项目设计隔离、乐观版本 | 同名模型跨项目隔离；旧入口回归通过 |
 | 3 ✅ | ServiceIR、gozero-ent、稳定 proto 编号、ChangePlan | 增量更新保留手写代码；HTTP/RPC 示例可运行（2026-09-07 达成，证据见 progress.md） |
 | 4 ✅ | etcd 与 APISIX 适配、发布操作、漂移 | 扩缩容、断线恢复与 Controller 重启可恢复（2026-09-15 达成，证据见 progress.md 与 deploy/release 验收栈） |
-| 5 | JobIR、Dkron、业务任务协议 | 可追踪触发/重试，业务幂等与长任务状态正确 |
+| 5 ✅ | JobIR、Dkron、业务任务协议 | 可追踪触发/重试，业务幂等与长任务状态正确（2026-09-15 达成，证据见 progress.md 与 TestJobAcceptance） |
 | 6 | Release、CI、Compose 发布、环境晋级 | 产物可追溯；部分失败可恢复，配置/应用可回退 |
 | 7 | HA、审计检索、观测、凭证轮换、恢复演练 | 按确认后的容量及可用性目标验收；无 Kubernetes 范围 |
 
