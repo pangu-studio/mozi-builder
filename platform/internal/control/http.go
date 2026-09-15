@@ -11,12 +11,16 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/pangu-studio/mozi-builder/platform/internal/jobs"
 	"github.com/zeromicro/go-zero/rest"
 )
 
 type API struct {
-	DB     *sql.DB
-	Design *sql.DB
+	DB         *sql.DB
+	Design     *sql.DB
+	Jobs       *jobs.Store
+	Dispatcher *jobs.Dispatcher
+	FireKey    string
 }
 type input struct {
 	Email    string `json:"email"`
@@ -68,7 +72,7 @@ func (a API) Routes() []rest.Route {
 		{Method: "POST", Path: "/api/v2/projects/:project/environments", Handler: a.handle},
 		{Method: "GET", Path: "/api/v2/projects/:project/members", Handler: a.handle},
 		{Method: "POST", Path: "/api/v2/projects/:project/members", Handler: a.handle},
-	}, a.designRoutes()...)
+	}, append(a.designRoutes(), a.jobRoutes()...)...)
 }
 func audit(r *http.Request, tx *sql.Tx, user, project, action, resource, result string) error {
 	_, err := tx.ExecContext(r.Context(), `INSERT INTO audit_events(actor_id,project_id,request_id,action,resource_type,resource_id,result) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7)`, user, project, ID(), action, action, resource, result)
@@ -113,6 +117,14 @@ func (a API) handle(w http.ResponseWriter, r *http.Request) {
 		reply(w, 200, map[string]any{"access_token": token, "token_type": "Bearer", "expires_in": 43200})
 		return
 	}
+	if path == "dkron/fire" {
+		a.handleDkronFire(w, r)
+		return
+	}
+	if path == "jobs/heartbeat" {
+		a.handleJobHeartbeat(w, r)
+		return
+	}
 	if !strings.HasPrefix(r.Header.Get("Authorization"), "Bearer ") {
 		fail(w, 401)
 		return
@@ -129,6 +141,10 @@ func (a API) handle(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.Contains(path, "/design/") {
 		a.handleDesign(w, r, u, path)
+		return
+	}
+	if strings.Contains(path, "/jobs/") {
+		a.handleProjectJob(w, r, u, strings.Split(path, "/"))
 		return
 	}
 	if path == "me" {

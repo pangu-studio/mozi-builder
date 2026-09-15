@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -59,21 +60,38 @@ func (c DkronClient) call(ctx context.Context, method, path string, body any) (i
 }
 
 // SyncJob upserts an enabled JobIR as a Dkron job pointing at the platform
-// fire endpoint; a disabled JobIR becomes a disabled Dkron job.
-func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL string) error {
-	name := j.Module + "/" + j.Name
+// fire endpoint; a disabled JobIR becomes a disabled Dkron job. fireKey is
+// sent as the shared-secret header on every trigger. Dkron 4.1.3 POST only
+// creates (repeated posts do not update), so sync deletes first to stay
+// idempotent.
+func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL, fireKey string) error {
+	if err := c.DeleteJob(ctx, j.Module, j.Name); err != nil {
+		return err
+	}
+	name := JobName(j)
+	config := map[string]string{
+		"method": "POST",
+		"url":    fireURL,
+	}
+	// Dkron 4.1.3 does not deliver custom executor headers (verified
+	// against the acceptance Dkron), so the shared secret travels as a
+	// fire_key query parameter on the internal network.
+	if fireKey != "" {
+		sep := "?"
+		if strings.Contains(fireURL, "?") {
+			sep = "&"
+		}
+		config["url"] = fireURL + sep + "fire_key=" + url.QueryEscape(fireKey)
+	}
 	job := dkronJob{
 		Name:     name,
 		Schedule: j.Schedule,
 		Disabled: !j.IsEnabled(),
 		Retries:  0, // business retries live in the platform, never in Dkron
 		Executor: "http",
-		ExecutorConfig: map[string]string{
-			"method": "POST",
-			"url":    fireURL,
-		},
+		ExecutorConfig: config,
 	}
-	status, err := c.call(ctx, http.MethodPut, "jobs", job)
+	status, err := c.call(ctx, http.MethodPost, "jobs", job)
 	if err != nil || status >= 300 {
 		return fmt.Errorf("sync dkron job %s: status %d: %w", name, status, err)
 	}
@@ -83,9 +101,17 @@ func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL string)
 // DeleteJob removes a job definition from Dkron, e.g. when the JobIR is
 // deleted from the design database.
 func (c DkronClient) DeleteJob(ctx context.Context, module, name string) error {
-	status, err := c.call(ctx, http.MethodDelete, "jobs/"+module+"%2F"+name, nil)
+	status, err := c.call(ctx, http.MethodDelete, "jobs/"+module+"-"+strings.ToLower(name), nil)
 	if err != nil || (status >= 300 && status != 404) {
-		return fmt.Errorf("delete dkron job %s/%s: status %d: %w", module, name, status, err)
+		return fmt.Errorf("delete dkron job %s-%s: status %d: %w", module, name, status, err)
 	}
 	return nil
+}
+
+// JobName is the Dkron-side identifier for a JobIR. Dkron 4.1.3 rejects
+// slashes, dots, and uppercase letters (verified against the acceptance
+// Dkron), so the identifier is lowercase with a hyphen separator. JobIR
+// names are PascalCase, so lowercasing stays unique within a module.
+func JobName(j *mozi.JobIR) string {
+	return j.Module + "-" + strings.ToLower(j.Name)
 }
