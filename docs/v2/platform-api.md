@@ -55,6 +55,8 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 模型另有 `GET .../design/models/:module/:name/change-plan`：当前文档与上一历史快照的 differ 对比经根模块 `mozi/changeplan` 装配为 AI Coding 契约（意图、任务、验证项、prompt）。v2 没有代码清单（manifest），状态为 pending（有差异）或 no_diff（无差异）；services 集合暂无 change-plan。
 
+任务定义（JobIR，阶段 5）接口前缀 `/api/v2/projects/:project/design/jobs`，契约与 models/services 逐项对齐（500 上限、409/428/404、viewer 只读、删除保留历史）。文档经根模块 `mozi/job` 校验：cron 五段或 `@every`、executor POST/PUT 与路径、重试/超时/心跳规则；协议与 Dkron 边界见 [jobs.md](jobs.md)。jobs 集合暂无 change-plan。
+
 ## 验证
 
 ```sh
