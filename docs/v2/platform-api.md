@@ -55,6 +55,8 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 模型另有 `GET .../design/models/:module/:name/change-plan`：当前文档与上一历史快照的 differ 对比经根模块 `mozi/changeplan` 装配为 AI Coding 契约（意图、任务、验证项、prompt）。v2 没有代码清单（manifest），状态为 pending（有差异）或 no_diff（无差异）；services 集合暂无 change-plan。
 
+晋级/回退（阶段 6）：`POST /api/v2/projects/:id/environments/:eid/promote`（body release_id + confirm；protected 环境缺 confirm 返回 409 confirm_required）与 `POST .../rollback`（回到上一个 ready Release，无目标返回 409 no_rollback_target）。viewer 403。任务同步按 Release 快照中的 design_job_history 版本执行（冻结语义）；成功后旧 ready 记录转 superseded。
+
 Release 接口（阶段 6）：`POST /api/v2/projects/:id/releases`（label + code_ref → 201，创建时固化 design_models/services/jobs 版本快照，viewer 403）、`GET .../releases`（成员，最近 100 条倒序）、`GET .../releases/:rid/provenance`（成员，Release 三方关联与晋级/回退历史）。快照一经创建不再随设计库修改；创建写审计。契约见 [release.md](release.md)。
 
 任务执行接口（阶段 5）：`POST /api/v2/dkron/fire`（调度回调，共享密钥经 `X-Mozi-Fire-Key` 头或 `fire_key` 查询参数；禁用任务返回 409）、`POST /api/v2/jobs/heartbeat`（执行器心跳，仅头认证，失联 attempt 返回 409）、`POST /api/v2/projects/:id/jobs/:module/:job/fire`（成员手动触发，viewer 403，禁用任务也可 ad-hoc 执行）、`GET .../executions`（成员读最近 100 条）。触发返回 202 与 execution_id，派发异步进行。Dkron 4.1.3 不投递自定义 executor header（实测），调度回调密钥走查询参数。
