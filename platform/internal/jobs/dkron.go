@@ -90,11 +90,11 @@ func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL, fireKe
 		config["url"] = fireURL + sep + "fire_key=" + url.QueryEscape(fireKey)
 	}
 	job := dkronJob{
-		Name:     name,
-		Schedule: schedule,
-		Disabled: !j.IsEnabled(),
-		Retries:  0, // business retries live in the platform, never in Dkron
-		Executor: "http",
+		Name:           name,
+		Schedule:       schedule,
+		Disabled:       !j.IsEnabled(),
+		Retries:        0, // business retries live in the platform, never in Dkron
+		Executor:       "http",
 		ExecutorConfig: config,
 	}
 	status, err := c.call(ctx, http.MethodPost, "jobs", job)
