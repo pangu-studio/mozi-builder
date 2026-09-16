@@ -55,6 +55,8 @@ slug 为 2–63 个字符，以小写字母开头，后续为小写字母、数�
 
 模型另有 `GET .../design/models/:module/:name/change-plan`：当前文档与上一历史快照的 differ 对比经根模块 `mozi/changeplan` 装配为 AI Coding 契约（意图、任务、验证项、prompt）。v2 没有代码清单（manifest），状态为 pending（有差异）或 no_diff（无差异）；services 集合暂无 change-plan。
 
+审计检索（阶段 7）：`GET .../audit`（action/actor/from/to 过滤）、`GET .../design-changes?kind=models|services|jobs`、`GET .../executions?job=&state=`，统一 `(created_at,id)` 游标分页（`next_cursor` 为空表示尾页，limit 上限 100），成员可读、跨项目 404、非法游标 400。契约见 [operations.md](operations.md)。
+
 晋级/回退（阶段 6）：`POST /api/v2/projects/:id/environments/:eid/promote`（body release_id + confirm；protected 环境缺 confirm 返回 409 confirm_required）与 `POST .../rollback`（回到上一个 ready Release，无目标返回 409 no_rollback_target）。viewer 403。任务同步按 Release 快照中的 design_job_history 版本执行（冻结语义）；成功后旧 ready 记录转 superseded。
 
 Release 接口（阶段 6）：`POST /api/v2/projects/:id/releases`（label + code_ref → 201，创建时固化 design_models/services/jobs 版本快照，viewer 403）、`GET .../releases`（成员，最近 100 条倒序）、`GET .../releases/:rid/provenance`（成员，Release 三方关联与晋级/回退历史）。快照一经创建不再随设计库修改；创建写审计。契约见 [release.md](release.md)。

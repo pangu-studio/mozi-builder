@@ -74,7 +74,7 @@ func (a API) Routes() []rest.Route {
 		{Method: "POST", Path: "/api/v2/projects/:project/environments", Handler: a.handle},
 		{Method: "GET", Path: "/api/v2/projects/:project/members", Handler: a.handle},
 		{Method: "POST", Path: "/api/v2/projects/:project/members", Handler: a.handle},
-	}, append(a.designRoutes(), append(a.jobRoutes(), append(a.releaseRoutes(), a.promotionRoutes()...)...)...)...)
+	}, append(a.designRoutes(), append(a.jobRoutes(), append(a.releaseRoutes(), append(a.promotionRoutes(), a.auditRoutes()...)...)...)...)...)
 }
 func audit(r *http.Request, tx *sql.Tx, user, project, action, resource, result string) error {
 	_, err := tx.ExecContext(r.Context(), `INSERT INTO audit_events(actor_id,project_id,request_id,action,resource_type,resource_id,result) VALUES($1,NULLIF($2,''),$3,$4,$5,$6,$7)`, user, project, ID(), action, action, resource, result)
@@ -156,6 +156,12 @@ func (a API) handle(w http.ResponseWriter, r *http.Request) {
 	if strings.HasSuffix(path, "/promote") || strings.HasSuffix(path, "/rollback") {
 		a.handlePromotion(w, r, u, strings.Split(path, "/"))
 		return
+	}
+	for _, resource := range []string{"audit", "design-changes", "executions"} {
+		if strings.HasSuffix(path, "/"+resource) {
+			a.handleAuditSearch(w, r, u, strings.Split(path, "/"), resource)
+			return
+		}
 	}
 	if path == "me" {
 		reply(w, 200, u)
