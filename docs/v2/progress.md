@@ -206,3 +206,17 @@
 - `TestPromotionAcceptance` 对真实 Dkron 全过：①dev 晋级后任务经 Dkron 定时触发并 succeeded；②production 无 confirm 409、有 confirm 200；③停 Dkron 晋级落 failed 中间态，恢复后重试晋级 ready 且 r1 superseded；④rollback 回到 r1，Dkron 配置恢复为快照版本（@every 2s）。
 - 实测修正：Dkron 4.1.3 cron 为 6 段（秒在前），适配器把产品级 5 段 cron 前置 "0"；Dkron 重启后 raft 先读后可写，就绪探针改为写探测；晋级步骤失败返回 200 + failed 记录与错误详情（ErrStepFailed），区别于 4xx/5xx。
 - 验证：平台 go test -race 全绿。deploy/route 步骤的端到端（阶段 4 适配器接入 Promoter）与迁移审查步骤在后续完善；阶段 6 退出条件的可恢复与可回退已对任务链路验证。
+
+## 阶段 6 收口（2026-09-16）
+
+退出条件达成情况：
+
+| 退出条件 | 证据 |
+|---|---|
+| 产物可追溯 | Release 三方关联（design_versions 快照 × code_ref × environment_releases）+ provenance 查询；快照冻结语义实测 |
+| 部分失败可恢复 | Dkron 停机注入 → 晋级落 failed 中间态 → 恢复后重试晋级 ready；晋级步骤失败返回 200 + failed 记录与错误详情 |
+| 配置/应用可回退 | rollback 回到上一 ready Release，Dkron 任务配置恢复为快照版本（@every 2s ↔ 6 段 cron 实测） |
+
+交付链：Release 数据模型与追溯 API（PR #30）→ 晋级/回退编排（#31）→ Compose 晋级验收（#32）。CI 门禁（#28）：root/platform Go 测试 + web 构建。
+
+已知边界：deploy/route 步骤未接入 Promoter 编排（阶段 4 适配器的能力已在独立链路验证）；兼容迁移的审查步骤为人工流程，平台只记录不执行；数据库回滚独立处理（红线）未实现工具化；protected 环境的双人审批为单人 confirm 语义。
