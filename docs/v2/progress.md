@@ -200,3 +200,9 @@
 - `release.Promoter`：Promote/Rollback 编排——protected 强制 confirm（409）、缺失目标 404/409、成功后旧 ready 转 superseded；任务同步按快照 token 从 design_job_history 加载 JobIR 并 SyncJob 到 Dkron。
 - 端点：POST promote / rollback；viewer 403。
 - 验证：真实双库 + httptest Dkron——promote 后 Dkron 收到 content-digestjob、protected 无 confirm 409/有 confirm 200、r2 晋级后 r1 superseded、rollback 回到 r1 且重同步、单一 ready 环境 rollback 409、viewer 403、缺失 Release 404。平台 go test -race 全绿。Compose 晋级/部分失败/回退验收在 PR-C。
+
+### 阶段 6：晋级 Compose 验收（PR-C）
+
+- `TestPromotionAcceptance` 对真实 Dkron 全过：①dev 晋级后任务经 Dkron 定时触发并 succeeded；②production 无 confirm 409、有 confirm 200；③停 Dkron 晋级落 failed 中间态，恢复后重试晋级 ready 且 r1 superseded；④rollback 回到 r1，Dkron 配置恢复为快照版本（@every 2s）。
+- 实测修正：Dkron 4.1.3 cron 为 6 段（秒在前），适配器把产品级 5 段 cron 前置 "0"；Dkron 重启后 raft 先读后可写，就绪探针改为写探测；晋级步骤失败返回 200 + failed 记录与错误详情（ErrStepFailed），区别于 4xx/5xx。
+- 验证：平台 go test -race 全绿。deploy/route 步骤的端到端（阶段 4 适配器接入 Promoter）与迁移审查步骤在后续完善；阶段 6 退出条件的可恢复与可回退已对任务链路验证。
