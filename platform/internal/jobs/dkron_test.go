@@ -39,7 +39,8 @@ func TestDkronSyncPayload(t *testing.T) {
 	if payload.Retries != 0 {
 		t.Fatal("Dkron-level retries must stay zero; business retries live in the platform")
 	}
-	if payload.Disabled || payload.Schedule != "0 3 * * *" || payload.ExecutorConfig["method"] != "POST" {
+	// Five-field JobIR cron becomes six-field Dkron cron (seconds first).
+	if payload.Disabled || payload.Schedule != "0 0 3 * * *" || payload.ExecutorConfig["method"] != "POST" {
 		t.Fatalf("payload: %+v", payload)
 	}
 	if !strings.Contains(payload.ExecutorConfig["url"], "fire_key=secret") {

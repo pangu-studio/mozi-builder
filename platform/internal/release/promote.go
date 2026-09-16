@@ -19,6 +19,10 @@ var (
 	ErrPromotionNotFound = errors.New("environment or release not found")
 	// ErrNoRollbackTarget signals no earlier ready release to roll back to.
 	ErrNoRollbackTarget = errors.New("no earlier ready release")
+	// ErrStepFailed marks an expected operational failure of a promotion
+	// step; the operation record is persisted in state failed and can be
+	// retried by re-invoking the promotion.
+	ErrStepFailed = errors.New("promotion step failed")
 )
 
 // Promoter unfolds environment promotions and rollbacks into the fixed
@@ -77,12 +81,14 @@ func (p Promoter) apply(ctx context.Context, environmentID, releaseID, action, a
 	if p.Dkron != nil {
 		if err = p.syncTasks(ctx, project, rel); err != nil {
 			_ = p.transition(ctx, environmentID, releaseID, action, record.CreatedAt, "failed")
-			return record, fmt.Errorf("sync tasks: %w", err)
+			record.State = "failed"
+			return record, fmt.Errorf("sync tasks: %w: %w", err, ErrStepFailed)
 		}
 	}
 	if err = p.supersedePrevious(ctx, environmentID, record.CreatedAt); err != nil {
 		_ = p.transition(ctx, environmentID, releaseID, action, record.CreatedAt, "failed")
-		return record, err
+		record.State = "failed"
+		return record, fmt.Errorf("%w: %w", err, ErrStepFailed)
 	}
 	err = p.transition(ctx, environmentID, releaseID, action, record.CreatedAt, "ready")
 	record.State = "ready"

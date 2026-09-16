@@ -73,6 +73,12 @@ func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL, fireKe
 		"method": "POST",
 		"url":    fireURL,
 	}
+	// Dkron 4.1.3 cron has six fields (seconds first); JobIR uses the
+	// product-level five-field form, so the adapter prepends seconds.
+	schedule := j.Schedule
+	if fields := strings.Fields(schedule); len(fields) == 5 {
+		schedule = "0 " + schedule
+	}
 	// Dkron 4.1.3 does not deliver custom executor headers (verified
 	// against the acceptance Dkron), so the shared secret travels as a
 	// fire_key query parameter on the internal network.
@@ -84,11 +90,11 @@ func (c DkronClient) SyncJob(ctx context.Context, j *mozi.JobIR, fireURL, fireKe
 		config["url"] = fireURL + sep + "fire_key=" + url.QueryEscape(fireKey)
 	}
 	job := dkronJob{
-		Name:     name,
-		Schedule: j.Schedule,
-		Disabled: !j.IsEnabled(),
-		Retries:  0, // business retries live in the platform, never in Dkron
-		Executor: "http",
+		Name:           name,
+		Schedule:       schedule,
+		Disabled:       !j.IsEnabled(),
+		Retries:        0, // business retries live in the platform, never in Dkron
+		Executor:       "http",
 		ExecutorConfig: config,
 	}
 	status, err := c.call(ctx, http.MethodPost, "jobs", job)

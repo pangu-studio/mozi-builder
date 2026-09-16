@@ -82,6 +82,11 @@ func (a API) handlePromotion(w http.ResponseWriter, r *http.Request, u User, par
 		reply(w, 409, map[string]string{"error": "no_rollback_target"})
 		return
 	}
+	if errors.Is(err, release.ErrStepFailed) {
+		// The middle state is persisted; the client retries the same call.
+		reply(w, 200, map[string]any{"environment_release": record, "state": record.State, "error": err.Error()})
+		return
+	}
 	if err != nil {
 		dbError(w, err)
 		return
