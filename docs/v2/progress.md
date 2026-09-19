@@ -201,13 +201,18 @@
 - 端点：POST promote / rollback；viewer 403。
 - 验证：真实双库 + httptest Dkron——promote 后 Dkron 收到 content-digestjob、protected 无 confirm 409/有 confirm 200、r2 晋级后 r1 superseded、rollback 回到 r1 且重同步、单一 ready 环境 rollback 409、viewer 403、缺失 Release 404。平台 go test -race 全绿。Compose 晋级/部分失败/回退验收在 PR-C。
 
-### 阶段 6：晋级 Compose 验收（PR-C）
+### 阶段 7：晋级 Compose 验收（PR-C）
 
 - `TestPromotionAcceptance` 对真实 Dkron 全过：①dev 晋级后任务经 Dkron 定时触发并 succeeded；②production 无 confirm 409、有 confirm 200；③停 Dkron 晋级落 failed 中间态，恢复后重试晋级 ready 且 r1 superseded；④rollback 回到 r1，Dkron 配置恢复为快照版本（@every 2s）。
 - 实测修正：Dkron 4.1.3 cron 为 6 段（秒在前），适配器把产品级 5 段 cron 前置 "0"；Dkron 重启后 raft 先读后可写，就绪探针改为写探测；晋级步骤失败返回 200 + failed 记录与错误详情（ErrStepFailed），区别于 4xx/5xx。
 - 验证：平台 go test -race 全绿。deploy/route 步骤的端到端（阶段 4 适配器接入 Promoter）与迁移审查步骤在后续完善；阶段 6 退出条件的可恢复与可回退已对任务链路验证。
 
-## 阶段 6 收口（2026-09-16）
+### 阶段 8：审计检索 API（PR-A）
+
+- `platform/internal/auditlog`：audit_events / design_*_history（按 kind）/ job_executions 三路只读检索，统一 (created_at,id) 复合游标、limit 上限 100。
+- 端点：audit（action/actor/from/to）、design-changes（kind 必填）、executions（job/state）；成员可读、跨项目 404、非法游标 400。
+- 验证：真实双库——过滤正确、游标翻页不重复、kind 必填 400、状态过滤、跨项目零泄漏；平台 go test -race 全绿。观测（领域事件日志 + /metrics）在 PR-B。
+## 阶段 8 收口（2026-09-16）
 
 退出条件达成情况：
 
